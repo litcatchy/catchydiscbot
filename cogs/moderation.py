@@ -1,10 +1,23 @@
 import discord
 from discord.ext import commands
-from discord import app_commands
+from datetime import timedelta
 
 class Moderation(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+    async def cog_command_error(self, ctx, error):
+        """Handles errors globally for this cog and sends error messages to Discord."""
+        if isinstance(error, commands.MissingRequiredArgument):
+            return await ctx.send(f"<:cancel:1346853536738316339> Missing required argument: `{error.param.name}`")
+        elif isinstance(error, commands.BadArgument):
+            return await ctx.send("<:cancel:1346853536738316339> Invalid argument provided.")
+        elif isinstance(error, commands.MissingPermissions):
+            return await ctx.send("<:cancel:1346853536738316339> You don’t have permission to use this command.")
+        elif isinstance(error, commands.CommandInvokeError):
+            return await ctx.send(f"<:cancel:1346853536738316339> An error occurred: `{error.original}`")
+        else:
+            return await ctx.send(f"<:cancel:1346853536738316339> Unexpected error: `{error}`")
 
     # Kick Command
     @commands.command()
@@ -50,8 +63,9 @@ class Moderation(commands.Cog):
             return await ctx.send("<:cancel:1346853536738316339> Invalid time format! Use `10m`, `1h`, `1d`, etc.")
 
         seconds = int(duration[:-1]) * time_multipliers[unit]
+        duration_time = timedelta(seconds=seconds)
 
-        await member.timeout(discord.utils.utcnow() + discord.timedelta(seconds=seconds), reason=reason)
+        await member.timeout(discord.utils.utcnow() + duration_time, reason=reason)
         await ctx.send(f"<:success:1346853488738566175> Successfully timed out {member.mention} for {duration}. Reason: {reason}")
 
     # Untimeout Command
