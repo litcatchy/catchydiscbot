@@ -20,6 +20,67 @@ async def on_ready():
 async def on_ready():
     print(f"Logged in as {bot.user}")
     await load_cogs()  # Await the function properly
+
+import discord
+from discord.ext import commands
+
+bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
+
+@bot.event
+async def on_command_error(ctx, error):
+    """Global error handler to catch missing arguments and other issues."""
+    if isinstance(error, commands.MissingRequiredArgument):
+        embed = discord.Embed(
+            title="<:cancel:1346853536738316339> Error",
+            description=f"Missing argument: `{error.param.name}`.",
+            color=discord.Color.red()
+        )
+        return await ctx.send(embed=embed)
+    
+    elif isinstance(error, commands.BadArgument):
+        embed = discord.Embed(
+            title="<:cancel:1346853536738316339> Error",
+            description="Invalid argument provided.",
+            color=discord.Color.red()
+        )
+        return await ctx.send(embed=embed)
+
+    elif isinstance(error, commands.MemberNotFound):
+        embed = discord.Embed(
+            title="<:cancel:1346853536738316339> Error",
+            description="User not found.",
+            color=discord.Color.red()
+        )
+        return await ctx.send(embed=embed)
+
+    elif isinstance(error, commands.BotMissingPermissions):
+        embed = discord.Embed(
+            title="<:cancel:1346853536738316339> Error",
+            description="I don't have the required permissions to perform this action.",
+            color=discord.Color.red()
+        )
+        return await ctx.send(embed=embed)
+
+    elif isinstance(error, commands.MissingPermissions):
+        embed = discord.Embed(
+            title="<:cancel:1346853536738316339> Error",
+            description="You don't have permission to use this command.",
+            color=discord.Color.red()
+        )
+        return await ctx.send(embed=embed)
+
+    elif isinstance(error, commands.CommandNotFound):
+        return  # Ignore unknown commands
+
+    else:
+        # Log unexpected errors but send a message to the user
+        print(f"Unexpected error: {error}")  # This keeps logs clean in Actions
+        embed = discord.Embed(
+            title="<:cancel:1346853536738316339> Unexpected Error",
+            description="An unexpected error occurred. Please try again later.",
+            color=discord.Color.red()
+        )
+        return await ctx.send(embed=embed)
  
 # Command: Role Help (Shortened List)
 @bot.command(name="rh")
