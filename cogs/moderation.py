@@ -1,80 +1,80 @@
 import discord
 from discord.ext import commands
-from discord import app_commands
 
 class Moderation(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    async def send_error(self, ctx, message):
-        embed = discord.Embed(description=f"<:cancel:1346853536738316339> {message}", color=discord.Color.red())
+    async def send_embed(self, ctx, title, description, color):
+        embed = discord.Embed(title=title, description=description, color=color)
         await ctx.send(embed=embed)
 
-    async def send_success(self, ctx, message):
-        embed = discord.Embed(description=f"<:success:1346853536738316339> {message}", color=discord.Color.green())
-        await ctx.send(embed=embed)
-
-    @commands.has_permissions(kick_members)
     @commands.command(name="kick")
-    async def kick(self, ctx, member: discord.Member = None, *, reason="No reason provided"):
-        if not member:
-            return await self.send_error(ctx, "Invalid user. Please mention a valid member.")
+    @commands.has_permissions(kick_members=True)
+    async def kick(self, ctx, member: discord.Member, *, reason="No reason provided"):
+        """Kicks a member from the server."""
+        try:
+            await member.kick(reason=reason)
+            await self.send_embed(ctx, f"<:success:1346853488738566175> Kicked {member.name}",
+                                  f"Reason: {reason}", discord.Color.green())
+        except discord.Forbidden:
+            await self.send_embed(ctx, "<:cancel:1346853536738316339> Error",
+                                  "I do not have permission to kick this member.", discord.Color.red())
 
-        if member == ctx.guild.owner:
-            return await self.send_error(ctx, "Skill issue, slaves cannot use the command on the server owner.")
-
-        await member.kick(reason=reason)
-        await self.send_success(ctx, f"{member.mention} has been kicked. Reason: {reason}")
-
-    @commands.has_permissions(ban_members)
     @commands.command(name="ban")
-    async def ban(self, ctx, member: discord.Member = None, *, reason="No reason provided"):
-        if not member:
-            return await self.send_error(ctx, "Invalid user. Please mention a valid member.")
+    @commands.has_permissions(ban_members=True)
+    async def ban(self, ctx, member: discord.Member, *, reason="No reason provided"):
+        """Bans a member from the server."""
+        try:
+            await member.ban(reason=reason)
+            await self.send_embed(ctx, f"<:success:1346853488738566175> Banned {member.name}",
+                                  f"Reason: {reason}", discord.Color.green())
+        except discord.Forbidden:
+            await self.send_embed(ctx, "<:cancel:1346853536738316339> Error",
+                                  "I do not have permission to ban this member.", discord.Color.red())
 
-        if member == ctx.guild.owner:
-            return await self.send_error(ctx, "Skill issue, slaves cannot use the command on the server owner.")
-
-        await member.ban(reason=reason)
-        await self.send_success(ctx, f"{member.mention} has been banned. Reason: {reason}")
-
-    @commands.has_permissions(ban_members)
-    @commands.command(name="unban")
-    async def unban(self, ctx, user: discord.User = None):
-        if not user:
-            return await self.send_error(ctx, "Invalid user. Please provide a valid user ID or mention.")
-
-        bans = [ban_entry.user async for ban_entry in ctx.guild.bans()]
-        if user not in bans:
-            return await self.send_error(ctx, f"{user.mention} is not banned.")
-
-        await ctx.guild.unban(user)
-        await self.send_success(ctx, f"{user.mention} has been unbanned.")
-
-    @commands.has_permissions(moderate_members)
     @commands.command(name="timeout")
-    async def timeout(self, ctx, member: discord.Member = None, duration: int = 0, *, reason="No reason provided"):
-        if not member:
-            return await self.send_error(ctx, "Invalid user. Please mention a valid member.")
+    @commands.has_permissions(moderate_members=True)
+    async def timeout(self, ctx, member: discord.Member, time: int, *, reason="No reason provided"):
+        """Times out a member for a certain duration in minutes."""
+        try:
+            duration = discord.utils.utcnow() + discord.utils.timedelta(minutes=time)
+            await member.timeout(duration, reason=reason)
+            await self.send_embed(ctx, f"<:success:1346853488738566175> Timed out {member.name}",
+                                  f"Duration: {time} minutes\nReason: {reason}", discord.Color.green())
+        except discord.Forbidden:
+            await self.send_embed(ctx, "<:cancel:1346853536738316339> Error",
+                                  "I do not have permission to timeout this member.", discord.Color.red())
 
-        if member == ctx.guild.owner:
-            return await self.send_error(ctx, "Skill issue, slaves cannot use the command on the server owner.")
-
-        duration_seconds = duration * 60  # Convert minutes to seconds
-        await member.timeout(discord.utils.utcnow().replace(microsecond=0) + discord.timedelta(seconds=duration_seconds), reason=reason)
-        await self.send_success(ctx, f"{member.mention} has been timed out for {duration} minutes. Reason: {reason}")
-
-    @commands.has_permissions(moderate_members)
     @commands.command(name="untimeout")
-    async def untimeout(self, ctx, member: discord.Member = None):
-        if not member:
-            return await self.send_error(ctx, "Invalid user. Please mention a valid member.")
+    @commands.has_permissions(moderate_members=True)
+    async def untimeout(self, ctx, member: discord.Member):
+        """Removes timeout from a member."""
+        try:
+            await member.timeout(None)
+            await self.send_embed(ctx, f"<:success:1346853488738566175> Removed timeout from {member.name}",
+                                  "", discord.Color.green())
+        except discord.Forbidden:
+            await self.send_embed(ctx, "<:cancel:1346853536738316339> Error",
+                                  "I do not have permission to remove timeout.", discord.Color.red())
 
-        if member == ctx.guild.owner:
-            return await self.send_error(ctx, "Skill issue, slaves cannot use the command on the server owner.")
-
-        await member.timeout(None)
-        await self.send_success(ctx, f"{member.mention} has been untimed out.")
+    @commands.command(name="unban")
+    @commands.has_permissions(ban_members=True)
+    async def unban(self, ctx, user: discord.User):
+        """Unbans a user from the server."""
+        try:
+            bans = await ctx.guild.bans()
+            for entry in bans:
+                if entry.user.id == user.id:
+                    await ctx.guild.unban(user)
+                    await self.send_embed(ctx, f"<:success:1346853488738566175> Unbanned {user.name}",
+                                          "", discord.Color.green())
+                    return
+            await self.send_embed(ctx, "<:cancel:1346853536738316339> Error",
+                                  "This user is not banned.", discord.Color.red())
+        except discord.Forbidden:
+            await self.send_embed(ctx, "<:cancel:1346853536738316339> Error",
+                                  "I do not have permission to unban this user.", discord.Color.red())
 
 async def setup(bot):
     await bot.add_cog(Moderation(bot))
