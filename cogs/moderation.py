@@ -30,7 +30,7 @@ class Moderation(commands.Cog):
         if member == ctx.guild.owner:
             embed = discord.Embed(description="<:cancel:1346853536738316339> Skill issue, slaves cannot use the command on the server owner", color=discord.Color.red())
             return await ctx.send(embed=embed)
-        
+
         await member.kick(reason=reason)
         embed = discord.Embed(description=f"<:success:1346853488738566175> Successfully kicked {member.mention}. Reason: {reason}", color=discord.Color.green())
         await ctx.send(embed=embed)
@@ -47,11 +47,11 @@ class Moderation(commands.Cog):
         embed = discord.Embed(description=f"<:success:1346853488738566175> Successfully banned {member.mention}. Reason: {reason}", color=discord.Color.green())
         await ctx.send(embed=embed)
 
-    # Unban Command (Final Fix)
+    # Unban Command (Fixed)
     @commands.command()
     @commands.has_permissions(ban_members=True)
     async def unban(self, ctx, user_id: int):
-        banned_users = await ctx.guild.bans()  # Fetch banned users properly
+        banned_users = [entry async for entry in ctx.guild.bans()]  # Correct async iteration
         user = next((entry.user for entry in banned_users if entry.user.id == user_id), None)
 
         if user is None:
