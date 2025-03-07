@@ -18,7 +18,7 @@ async def on_ready():
     for filename in os.listdir("./cogs"):
         if filename.endswith(".py"):
             try:
-                bot.load_extension(f"cogs.{filename[:-3]}")
+                await bot.load_extension(f"cogs.{filename[:-3]}")
                 print(f"Loaded cog: {filename}")
             except Exception as e:
                 print(f"Failed to load cog {filename}: {e}")
@@ -28,7 +28,7 @@ async def on_ready():
 async def load(ctx, extension):
     """Load a cog dynamically."""
     try:
-        bot.load_extension(f"cogs.{extension}")
+        await bot.load_extension(f"cogs.{extension}")
         await ctx.send(f"{extension} has been loaded.")
     except Exception as e:
         await ctx.send(f"Error loading {extension}: {str(e)}")
@@ -38,7 +38,7 @@ async def load(ctx, extension):
 async def unload(ctx, extension):
     """Unload a cog dynamically."""
     try:
-        bot.unload_extension(f"cogs.{extension}")
+        await bot.unload_extension(f"cogs.{extension}")
         await ctx.send(f"{extension} has been unloaded.")
     except Exception as e:
         await ctx.send(f"Error unloading {extension}: {str(e)}")
@@ -48,23 +48,10 @@ async def unload(ctx, extension):
 async def reload(ctx, extension):
     """Reload a cog dynamically."""
     try:
-        bot.reload_extension(f"cogs.{extension}")
+        await bot.reload_extension(f"cogs.{extension}")
         await ctx.send(f"{extension} has been reloaded.")
     except Exception as e:
         await ctx.send(f"Error reloading {extension}: {str(e)}")
-
-# Function to load cogs on startup
-def load_cogs():
-    for filename in os.listdir("./cogs"):
-        if filename.endswith(".py"):
-            try:
-                bot.load_extension(f"cogs.{filename[:-3]}")
-                print(f"Loaded cog: {filename}")
-            except Exception as e:
-                print(f"Failed to load cog {filename}: {e}")
-
-# Start loading cogs on bot startup
-load_cogs()
  
 # Command: Role Help (Shortened List)
 @bot.command(name="rh")
