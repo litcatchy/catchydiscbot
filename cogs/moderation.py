@@ -197,6 +197,7 @@ class Moderation(commands.Cog):
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
+            
             @commands.command(name="ban")
 @commands.has_permissions(ban_members=True)
 async def ban(self, ctx, member: discord.Member, *, reason: str = "No reason provided"):
@@ -206,19 +207,18 @@ async def ban(self, ctx, member: discord.Member, *, reason: str = "No reason pro
             color=discord.Color.red()
         )
         await ctx.send(embed=embed)
-        return  
+        return
 
     if member.top_role >= ctx.author.top_role:
         embed = discord.Embed(
-            description=f"{ctx.author.mention} <:mention:1347449690849022092> You cannot ban {member.mention} because they have a higher or equal role.",
-            color=discord.Color.orange()
+            description=f"{ctx.author.mention} <:cancel:1346853536738316339> You cannot ban {member.mention} because they have a higher or equal role.",
+            color=discord.Color.red()
         )
         await ctx.send(embed=embed)
-        return  
+        return
 
     try:
-        await member.ban(reason=f"Banned by {ctx.author} | Reason: {reason}")
-
+        await ctx.guild.ban(member, reason=reason)
         embed = discord.Embed(
             description=f"<:success:1346853488738566175> {member.mention} got banned by {ctx.author.mention}.",
             color=discord.Color.green()
@@ -232,38 +232,11 @@ async def ban(self, ctx, member: discord.Member, *, reason: str = "No reason pro
         await ctx.send(embed=embed)
     except discord.NotFound:
         embed = discord.Embed(
-            description=f"{ctx.author.mention} <:cancel:1346853536738316339> The mentioned user does not exist or is already banned.",
+            description=f"{ctx.author.mention} <:cancel:1346853536738316339> The user {member.mention} does not exist or is already banned.",
             color=discord.Color.red()
         )
         await ctx.send(embed=embed)
 
-@ban.error
-async def ban_error(self, ctx, error):
-    if isinstance(error, commands.MissingPermissions):
-        embed = discord.Embed(
-            description=f"{ctx.author.mention} <:cancel:1346853536738316339> You do not have permission to use this command.",
-            color=discord.Color.red()
-        )
-        await ctx.send(embed=embed)
-    elif isinstance(error, commands.MissingRequiredArgument):
-        embed = discord.Embed(
-            description=f"{ctx.author.mention} <:cancel:1346853536738316339> Missing arguments. Please mention a user and provide a reason.",
-            color=discord.Color.red()
-        )
-        await ctx.send(embed=embed)
-    elif isinstance(error, commands.BadArgument):
-        embed = discord.Embed(
-            description=f"{ctx.author.mention} <:cancel:1346853536738316339> Invalid user provided.",
-            color=discord.Color.red()
-        )
-        await ctx.send(embed=embed)
-    else:
-        embed = discord.Embed(
-            description=f"{ctx.author.mention} <:cancel:1346853536738316339> An unknown error occurred.",
-            color=discord.Color.red()
-        )
-        await ctx.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(Moderation(bot))
-
