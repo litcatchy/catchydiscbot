@@ -2,85 +2,66 @@ import discord
 from discord.ext import commands
 import os
 
-intents = discord.Intents.all()
+# Set up intents to allow the bot to access member data
+intents = discord.Intents.default()
+intents.members = True
+
+# Create the bot instance with the command prefix
 bot = commands.Bot(command_prefix=",", intents=intents)
 
-# Function to load all cogs (async fix)
+# Event to notify when the bot is ready
+@bot.event
+async def on_ready():
+    print(f"Logged in as {bot.user}")
+    
+    # Load all cogs when the bot is ready
+    for filename in os.listdir("./cogs"):
+        if filename.endswith(".py"):
+            try:
+                await bot.load_extension(f"cogs.{filename[:-3]}")
+                print(f"Loaded cog: {filename}")
+            except Exception as e:
+                print(f"Failed to load cog {filename}: {e}")
+
+# Command to load a cog
+@bot.command()
+async def load(ctx, extension):
+    """Load a cog dynamically."""
+    try:
+        await bot.load_extension(f"cogs.{extension}")
+        await ctx.send(f"{extension} has been loaded.")
+    except Exception as e:
+        await ctx.send(f"Error loading {extension}: {str(e)}")
+
+# Command to unload a cog
+@bot.command()
+async def unload(ctx, extension):
+    """Unload a cog dynamically."""
+    try:
+        await bot.unload_extension(f"cogs.{extension}")
+        await ctx.send(f"{extension} has been unloaded.")
+    except Exception as e:
+        await ctx.send(f"Error unloading {extension}: {str(e)}")
+
+# Command to reload a cog
+@bot.command()
+async def reload(ctx, extension):
+    """Reload a cog dynamically."""
+    try:
+        await bot.reload_extension(f"cogs.{extension}")
+        await ctx.send(f"{extension} has been reloaded.")
+    except Exception as e:
+        await ctx.send(f"Error reloading {extension}: {str(e)}")
+
+# Function to load cogs
 async def load_cogs():
     for filename in os.listdir("./cogs"):
-        if filename.endswith(".py") and filename != "__init__.py":  # Skip __init__.py
-            await bot.load_extension(f"cogs.{filename[:-3]}")
-
-@bot.event
-async def on_ready():
-    print(f"Logged in as {bot.user}")
-    await load_cogs()  # Await the function properly
-
-@bot.event
-async def on_ready():
-    print(f"Logged in as {bot.user}")
-    await load_cogs()  # Await the function properly
-
-import discord
-from discord.ext import commands
-
-bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
-
-@bot.event
-async def on_command_error(ctx, error):
-    """Global error handler to catch missing arguments and other issues."""
-    if isinstance(error, commands.MissingRequiredArgument):
-        embed = discord.Embed(
-            title="<:cancel:1346853536738316339> Error",
-            description=f"Missing argument: `{error.param.name}`.",
-            color=discord.Color.red()
-        )
-        return await ctx.send(embed=embed)
-    
-    elif isinstance(error, commands.BadArgument):
-        embed = discord.Embed(
-            title="<:cancel:1346853536738316339> Error",
-            description="Invalid argument provided.",
-            color=discord.Color.red()
-        )
-        return await ctx.send(embed=embed)
-
-    elif isinstance(error, commands.MemberNotFound):
-        embed = discord.Embed(
-            title="<:cancel:1346853536738316339> Error",
-            description="User not found.",
-            color=discord.Color.red()
-        )
-        return await ctx.send(embed=embed)
-
-    elif isinstance(error, commands.BotMissingPermissions):
-        embed = discord.Embed(
-            title="<:cancel:1346853536738316339> Error",
-            description="I don't have the required permissions to perform this action.",
-            color=discord.Color.red()
-        )
-        return await ctx.send(embed=embed)
-
-    elif isinstance(error, commands.MissingPermissions):
-        embed = discord.Embed(
-            title="<:cancel:1346853536738316339> Error",
-            description="You don't have permission to use this command.",
-            color=discord.Color.red()
-        )
-        return await ctx.send(embed=embed)
-
-    elif isinstance(error, commands.CommandNotFound):
-        return  # Ignore unknown commands
-
-    else:
-        # Log unexpected errors but send a message to the user
-        print(f"Unexpected error: {error}")  # This keeps logs clean in Actions
-        embed = discord.Embed(
-            title="<:cancel:1346853536738316339> Unexpected Error",
-            description="An unexpected error occurred. Please try again later.",
-            color=discord.Color.red()
-        )
-        return await ctx.send(embed=embed)
+        if filename.endswith(".py"):
+            try:
+                await bot.load_extension(f"cogs.{filename[:-3]}")
+                print(f"Loaded cog: {filename}")
+            except Exception as e:
+                print(f"Failed to load cog {filename}: {e}")
  
 # Command: Role Help (Shortened List)
 @bot.command(name="rh")
