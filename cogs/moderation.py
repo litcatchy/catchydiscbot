@@ -1,92 +1,100 @@
 import discord
 from discord.ext import commands
+import re
+from datetime import timedelta
 
 class Moderation(commands.Cog):
+    """Moderation commands for managing users."""
+
     def __init__(self, bot):
         self.bot = bot
 
-    async def send_embed(self, ctx, title, description, color):
-        embed = discord.Embed(title=title, description=description, color=color)
-        await ctx.send(embed=embed)
-
-    # Handle missing arguments globally
-    async def cog_command_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument):
-            return await self.send_embed(ctx, "<:cancel:1346853536738316339> Error",
-                                         f"Missing argument: `{error.param.name}`.", discord.Color.red())
-        elif isinstance(error, commands.BadArgument):
-            return await self.send_embed(ctx, "<:cancel:1346853536738316339> Error",
-                                         "Invalid argument provided.", discord.Color.red())
-        elif isinstance(error, commands.MemberNotFound):
-            return await self.send_embed(ctx, "<:cancel:1346853536738316339> Error",
-                                         "User not found.", discord.Color.red())
-
-    @commands.command(name="kick")
-    @commands.has_permissions(kick_members=True)
-    async def kick(self, ctx, member: discord.Member, *, reason="No reason provided."):
-        """Kick a member from the server."""
-        try:
-            await member.kick(reason=reason)
-            await self.send_embed(ctx, "<:success:1346853488738566175> Success",
-                                  f"{member.mention} has been kicked.\n**Reason:** {reason}", discord.Color.green())
-        except discord.Forbidden:
-            await self.send_embed(ctx, "<:cancel:1346853536738316339> Error",
-                                  "I don't have permission to kick this member.", discord.Color.red())
-
-    @commands.command(name="ban")
-    @commands.has_permissions(ban_members=True)
-    async def ban(self, ctx, member: discord.Member, *, reason="No reason provided."):
-        """Ban a member from the server."""
+    @commands.command()
+    async def ban(self, ctx, member: discord.Member, *, reason=None):
+        """Ban a user from the server."""
         try:
             await member.ban(reason=reason)
-            await self.send_embed(ctx, "<:success:1346853488738566175> Success",
-                                  f"{member.mention} has been banned.\n**Reason:** {reason}", discord.Color.green())
+            await ctx.send(f"{member.mention} has been banned.")
         except discord.Forbidden:
-            await self.send_embed(ctx, "<:cancel:1346853536738316339> Error",
-                                  "I don't have permission to ban this member.", discord.Color.red())
+            await ctx.send("I don't have permission to ban that user.")
+        except discord.HTTPException:
+            await ctx.send("An error occurred while trying to ban that user.")
 
-    @commands.command(name="timeout")
-    @commands.has_permissions(moderate_members=True)
-    async def timeout(self, ctx, member: discord.Member, time: int, *, reason="No reason provided."):
-        """Timeout a member (in minutes)."""
+    @commands.command()
+    async def kick(self, ctx, member: discord.Member, *, reason=None):
+        """Kick a user from the server."""
         try:
-            duration = discord.utils.utcnow() + discord.timedelta(minutes=time)
-            await member.timeout(duration, reason=reason)
-            await self.send_embed(ctx, "<:success:1346853488738566175> Success",
-                                  f"{member.mention} has been timed out for `{time}` minutes.\n**Reason:** {reason}", discord.Color.green())
+            await member.kick(reason=reason)
+            await ctx.send(f"{member.mention} has been kicked.")
         except discord.Forbidden:
-            await self.send_embed(ctx, "<:cancel:1346853536738316339> Error",
-                                  "I don't have permission to timeout this member.", discord.Color.red())
+            await ctx.send("I don't have permission to kick that user.")
+        except discord.HTTPException:
+            await ctx.send("An error occurred while trying to kick that user.")
 
-    @commands.command(name="untimeout")
-    @commands.has_permissions(moderate_members=True)
+    @commands.command()
+    async def timeout(self, ctx, member: discord.Member, time: str):
+        """Timeout a user for a specified amount of time."""
+
+        # Parse the time input using regex (e.g., 10m, 1h, 30s)
+        match = re.match(r"(\d+)([smh])", time)
+
+        if not match:
+            await ctx.send("Invalid time format. Please use a format like `10m`, `1h`, or `30s`.")
+            return
+
+        amount, unit = match.groups()
+
+        try:
+            amount = int(amount)
+
+            # Convert the time to seconds
+            if unit == "m":
+                duration = timedelta(minutes=amount)
+            elif unit == "h":
+                duration = timedelta(hours=amount)
+            elif unit == "s":
+                duration = timedelta(seconds=amount)
+            else:
+                await ctx.send("Invalid unit. Use `m` for minutes, `h` for hours, and `s` for seconds.")
+                return
+
+            # Apply the timeout to the member
+            await member.timeout(duration)
+
+            await ctx.send(f"{member.mention} has been timed out for {time}.")
+
+        except ValueError:
+            await ctx.send("Invalid number for timeout duration.")
+        except discord.DiscordException as e:
+            await ctx.send(f"Error: {str(e)}")
+
+    @commands.command()
     async def untimeout(self, ctx, member: discord.Member):
-        """Remove timeout from a member."""
-        try:
+        """Untimeout a user."""
+        # Check if the user is currently timed out
+        if member.is_timed_out():
+            # Remove the timeout
             await member.timeout(None)
-            await self.send_embed(ctx, "<:success:1346853488738566175> Success",
-                                  f"{member.mention} has been untimed out.", discord.Color.green())
-        except discord.Forbidden:
-            await self.send_embed(ctx, "<:cancel:1346853536738316339> Error",
-                                  "I don't have permission to untimeout this member.", discord.Color.red())
+            await ctx.send(f"Successfully untimed out {member.mention}.")
+        else:
+            await ctx.send(f"{member.mention} is not currently timed out.")
 
-    @commands.command(name="unban")
-    @commands.has_permissions(ban_members=True)
-    async def unban(self, ctx, user: discord.User):
-        """Unban a previously banned user."""
+    @commands.command()
+    async def unban(self, ctx, user_id: int):
+        """Unban a user by their ID."""
         try:
-            bans = await ctx.guild.bans()
-            for ban_entry in bans:
-                if ban_entry.user.id == user.id:
-                    await ctx.guild.unban(user)
-                    return await self.send_embed(ctx, "<:success:1346853488738566175> Success",
-                                                 f"{user.mention} has been unbanned.", discord.Color.green())
-
-            await self.send_embed(ctx, "<:cancel:1346853536738316339> Error",
-                                  f"{user.mention} is not banned.", discord.Color.red())
+            # Try to unban the user
+            user = await self.bot.fetch_user(user_id)
+            await ctx.guild.unban(user)
+            await ctx.send(f"Successfully unbanned {user.mention}.")
+        except discord.NotFound:
+            await ctx.send("User is not banned.")
         except discord.Forbidden:
-            await self.send_embed(ctx, "<:cancel:1346853536738316339> Error",
-                                  "I don't have permission to unban this user.", discord.Color.red())
+            await ctx.send("I don't have permission to unban that user.")
+        except discord.HTTPException:
+            await ctx.send("An error occurred while trying to unban that user.")
 
-async def setup(bot):
-    await bot.add_cog(Moderation(bot))
+
+# Setup function to add the cog
+def setup(bot):
+    bot.add_cog(Moderation(bot))
