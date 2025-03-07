@@ -1,100 +1,118 @@
-import discord
 from discord.ext import commands
-import re
+import discord
 from datetime import timedelta
 
 class Moderation(commands.Cog):
-    """Moderation commands for managing users."""
-
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command()
-    async def ban(self, ctx, member: discord.Member, *, reason=None):
-        """Ban a user from the server."""
-        try:
-            await member.ban(reason=reason)
-            await ctx.send(f"{member.mention} has been banned.")
-        except discord.Forbidden:
-            await ctx.send("I don't have permission to ban that user.")
-        except discord.HTTPException:
-            await ctx.send("An error occurred while trying to ban that user.")
-
-    @commands.command()
-    async def kick(self, ctx, member: discord.Member, *, reason=None):
-        """Kick a user from the server."""
-        try:
-            await member.kick(reason=reason)
-            await ctx.send(f"{member.mention} has been kicked.")
-        except discord.Forbidden:
-            await ctx.send("I don't have permission to kick that user.")
-        except discord.HTTPException:
-            await ctx.send("An error occurred while trying to kick that user.")
+    async def cog_check(self, ctx):
+        # Add the skill issue message for the bot owner
+        if ctx.author.id == self.bot.owner_id:
+            await ctx.send(f"<:cancel:1346853536738316339> Skill issue, slaves cannot use the command on the server owner")
+            return False
+        return True
 
     @commands.command()
     async def timeout(self, ctx, member: discord.Member, time: str):
-        """Timeout a user for a specified amount of time."""
-
-        # Parse the time input using regex (e.g., 10m, 1h, 30s)
-        match = re.match(r"(\d+)([smh])", time)
-
-        if not match:
-            await ctx.send("Invalid time format. Please use a format like `10m`, `1h`, or `30s`.")
+        """Timeout a member for a specified time (e.g. 10m, 1h, 1d)."""
+        if ctx.author.id == self.bot.owner_id:
+            await ctx.send(f"<:cancel:1346853536738316339> Skill issue, slaves cannot use the command on the server owner")
             return
 
-        amount, unit = match.groups()
+        # Time parsing: allow minutes, hours, days
+        time_units = {'m': 'minutes', 'h': 'hours', 'd': 'days'}
 
+        # Extract the value and unit
         try:
-            amount = int(amount)
-
-            # Convert the time to seconds
-            if unit == "m":
-                duration = timedelta(minutes=amount)
-            elif unit == "h":
-                duration = timedelta(hours=amount)
-            elif unit == "s":
-                duration = timedelta(seconds=amount)
-            else:
-                await ctx.send("Invalid unit. Use `m` for minutes, `h` for hours, and `s` for seconds.")
+            unit = time[-1]  # last character is the time unit
+            value = int(time[:-1])  # everything except the last character is the value
+            if unit not in time_units:
+                await ctx.send("Invalid time unit. Use 'm' for minutes, 'h' for hours, 'd' for days.")
                 return
-
-            # Apply the timeout to the member
-            await member.timeout(duration)
-
-            await ctx.send(f"{member.mention} has been timed out for {time}.")
-
         except ValueError:
-            await ctx.send("Invalid number for timeout duration.")
-        except discord.DiscordException as e:
-            await ctx.send(f"Error: {str(e)}")
+            await ctx.send("Invalid time format. Example: `10m`, `1h`, `1d`.")
+            return
+
+        # Calculate the timeout duration
+        timeout_duration = timedelta(**{time_units[unit]: value})
+
+        # Apply the timeout
+        try:
+            await member.timeout(timeout_duration)
+            await ctx.send(f"{member.mention} has been successfully timed out for {time} <:success:1346853488738566175>.")
+        except discord.Forbidden:
+            await ctx.send(f"I don't have permission to timeout {member.mention} <:cancel:1346853536738316339>.")
+        except discord.HTTPException:
+            await ctx.send(f"An error occurred while trying to timeout {member.mention} <:cancel:1346853536738316339>.")
 
     @commands.command()
     async def untimeout(self, ctx, member: discord.Member):
-        """Untimeout a user."""
-        # Check if the user is currently timed out
-        if member.is_timed_out():
-            # Remove the timeout
-            await member.timeout(None)
-            await ctx.send(f"Successfully untimed out {member.mention}.")
+        """Remove timeout from a member."""
+        if ctx.author.id == self.bot.owner_id:
+            await ctx.send(f"<:cancel:1346853536738316339> Skill issue, slaves cannot use the command on the server owner")
+            return
+
+        if member.timeout is None:
+            await ctx.send(f"{member.mention} is not timed out. <:cancel:1346853536738316339>")
         else:
-            await ctx.send(f"{member.mention} is not currently timed out.")
+            try:
+                await member.timeout(None)  # Remove timeout
+                await ctx.send(f"{member.mention} has been successfully untimed out. <:success:1346853488738566175>")
+            except discord.Forbidden:
+                await ctx.send(f"I don't have permission to untimeout {member.mention} <:cancel:1346853536738316339>.")
+            except discord.HTTPException:
+                await ctx.send(f"An error occurred while removing the timeout for {member.mention} <:cancel:1346853536738316339>.")
 
     @commands.command()
-    async def unban(self, ctx, user_id: int):
-        """Unban a user by their ID."""
+    async def ban(self, ctx, member: discord.Member, *, reason=None):
+        """Ban a member from the server."""
+        if ctx.author.id == self.bot.owner_id:
+            await ctx.send(f"<:cancel:1346853536738316339> Skill issue, slaves cannot use the command on the server owner")
+            return
+
         try:
-            # Try to unban the user
-            user = await self.bot.fetch_user(user_id)
-            await ctx.guild.unban(user)
-            await ctx.send(f"Successfully unbanned {user.mention}.")
-        except discord.NotFound:
-            await ctx.send("User is not banned.")
+            await member.ban(reason=reason)
+            await ctx.send(f"{member.mention} has been banned. <:success:1346853488738566175>")
         except discord.Forbidden:
-            await ctx.send("I don't have permission to unban that user.")
+            await ctx.send(f"I don't have permission to ban {member.mention} <:cancel:1346853536738316339>.")
         except discord.HTTPException:
-            await ctx.send("An error occurred while trying to unban that user.")
+            await ctx.send(f"An error occurred while banning {member.mention} <:cancel:1346853536738316339>.")
 
+    @commands.command()
+    async def unban(self, ctx, user: discord.User):
+        """Unban a member from the server."""
+        if ctx.author.id == self.bot.owner_id:
+            await ctx.send(f"<:cancel:1346853536738316339> Skill issue, slaves cannot use the command on the server owner")
+            return
 
-# Setup function to add the cog
+        banned_users = await ctx.guild.bans()
+        banned_user = discord.utils.get(banned_users, user=user)
+        if banned_user:
+            try:
+                await ctx.guild.unban(user)
+                await ctx.send(f"{user.mention} has been unbanned. <:success:1346853488738566175>")
+            except discord.Forbidden:
+                await ctx.send(f"I don't have permission to unban {user.mention} <:cancel:1346853536738316339>.")
+            except discord.HTTPException:
+                await ctx.send(f"An error occurred while unbanning {user.mention} <:cancel:1346853536738316339>.")
+        else:
+            await ctx.send(f"{user.mention} is not banned. <:cancel:1346853536738316339>")
+
+    @commands.command()
+    async def kick(self, ctx, member: discord.Member, *, reason=None):
+        """Kick a member from the server."""
+        if ctx.author.id == self.bot.owner_id:
+            await ctx.send(f"<:cancel:1346853536738316339> Skill issue, slaves cannot use the command on the server owner")
+            return
+
+        try:
+            await member.kick(reason=reason)
+            await ctx.send(f"{member.mention} has been kicked. <:success:1346853488738566175>")
+        except discord.Forbidden:
+            await ctx.send(f"I don't have permission to kick {member.mention} <:cancel:1346853536738316339>.")
+        except discord.HTTPException:
+            await ctx.send(f"An error occurred while kicking {member.mention} <:cancel:1346853536738316339>.")
+
 def setup(bot):
     bot.add_cog(Moderation(bot))
