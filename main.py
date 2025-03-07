@@ -21,51 +21,6 @@ async def on_ready():
     print(f"Logged in as {bot.user}")
     await load_cogs()  # Await the function properly
  
-# Command: Add Role to User
-@bot.command(name="ra")
-@commands.has_permissions(manage_roles=True)
-async def role_add(ctx, member: discord.Member, *, role_name: str):
-    guild = ctx.guild
-    role = discord.utils.get(guild.roles, name=role_name)
-
-    # Check if role exists
-    if role is None:
-        embed = discord.Embed(
-            description=f"{ctx.author.mention} <:cancel:1346853536738316339> No role named `{role_name}` exists.",
-            color=discord.Color.red()
-        )
-        embed.set_footer(text="Ensure the role name is spelled correctly.")
-        await ctx.send(embed=embed)
-        return  
-
-    # Check if bot has permission to manage roles
-    if not ctx.guild.me.guild_permissions.manage_roles:
-        embed = discord.Embed(
-            description=f"{ctx.author.mention} <:cancel:1346853536738316339> I do not have permission to **Manage Roles**.",
-            color=discord.Color.red()
-        )
-        await ctx.send(embed=embed)
-        return  
-
-    # Check if the bot's role is higher than the target role
-    if role >= ctx.guild.me.top_role:
-        embed = discord.Embed(
-            description=f"{ctx.author.mention} <:cancel:1346853536738316339> I cannot assign `{role.name}` because it is higher or equal to my highest role.",
-            color=discord.Color.red()
-        )
-        await ctx.send(embed=embed)
-        return  
-
-    # Add the role to the member
-    await member.add_roles(role)
-
-    # Success message
-    embed = discord.Embed(color=discord.Color.green())
-    embed.add_field(name="User", value=member.mention, inline=False)
-    embed.add_field(name="Added Role", value=role.name, inline=False)
-    embed.set_footer(text=f"Executed by {ctx.author.display_name}")
-    await ctx.send(embed=embed)
-
 # Command: Role Help (Shortened List)
 @bot.command(name="rh")
 async def role_help(ctx):
@@ -86,44 +41,6 @@ async def role_help(ctx):
     embed.add_field(name="Change Role Icon", value="`,ri <role name> <emoji or URL>`", inline=False)
 
     embed.set_footer(text="Use these commands to manage roles efficiently")
-    await ctx.send(embed=embed)
-
-# Command: Remove Role from User
-@bot.command(name="rr")
-@commands.has_permissions(manage_roles=True)
-async def role_remove(ctx, member: discord.Member, *, role_name: str):
-    guild = ctx.guild
-    role = discord.utils.get(guild.roles, name=role_name)
-
-    if role is None:
-        embed = discord.Embed(
-            title="<:cancel:1346853536738316339> Role Not Found",
-            description=f"{ctx.author.mention}, no role named `{role_name}` exists.",
-            color=discord.Color.red()
-        )
-        embed.set_footer(text="Ensure the role name is spelled correctly.")
-        await ctx.send(embed=embed)
-        return
-
-    if role not in member.roles:
-        embed = discord.Embed(
-            title="<:mention:1347449690849022092> User Doesn't Have This Role",
-            description=f"{ctx.author.mention}, {member.mention} does not have the `{role.name}` role.",
-            color=discord.Color.orange()
-        )
-        embed.set_footer(text="Ensure the role name is spelled correctly.")
-        await ctx.send(embed=embed)
-        return
-
-    await member.remove_roles(role)
-
-    embed = discord.Embed(
-        title="<:currencypaw:1346100210899619901> Role Removed Successfully",
-        color=discord.Color.green()
-    )
-    embed.add_field(name="User", value=member.mention, inline=False)
-    embed.add_field(name="Removed Role", value=role.name, inline=False)
-    embed.set_footer(text=f"Executed by {ctx.author.display_name}")
     await ctx.send(embed=embed)
 
 import asyncio
