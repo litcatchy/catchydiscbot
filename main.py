@@ -20,62 +20,7 @@ async def on_ready():
 async def on_ready():
     print(f"Logged in as {bot.user}")
     await load_cogs()  # Await the function properly
-
-# Function to get color from name or hex
-def get_color(color_input):
-    if not color_input:
-        return discord.Color.default()
-    try:
-        if color_input.startswith("#"):  # Hex code
-            return discord.Color(int(color_input[1:], 16))
-        else:  # Named color
-            return getattr(discord.Color, color_input.lower())()
-    except (AttributeError, ValueError):
-        return discord.Color.default()
-
-# Function to extract role name and color from input
-def extract_role_and_color(text):
-    words = text.split()
-    color = words[-1].lower() if words[-1].lower() in dir(discord.Color) or re.match(r"^#[0-9A-Fa-f]{6}$", words[-1]) else None
-    role_name = " ".join(words[:-1]) if color else " ".join(words)
-    return role_name, color
-
-# Command: Create Role
-@bot.command(name="rc")
-@commands.has_permissions(manage_roles=True)
-async def role_create(ctx, *, input_text: str):
-    role_name, color = extract_role_and_color(input_text)
-    guild = ctx.guild
-    role_color = get_color(color)
-
-    new_role = await guild.create_role(name=role_name, color=role_color, permissions=discord.Permissions(manage_roles=True))
-
-    embed = discord.Embed(title="<:currencypaw:1346100210899619901> Role Created Successfully", color=role_color)
-    embed.add_field(name="Role Name", value=new_role.name, inline=False)
-    embed.add_field(name="Color", value=color if color else "Default", inline=False)
-    embed.set_footer(text=f"Created by {ctx.author.display_name}")
-    await ctx.send(embed=embed)
-
-# Command: Delete Role
-@bot.command(name="rd")
-@commands.has_permissions(manage_roles=True)
-async def role_delete(ctx, *, role_name: str):
-    guild = ctx.guild
-    role = discord.utils.get(guild.roles, name=role_name)
-
-    if role is None:
-        embed = discord.Embed(title="<:cancel:1346853536738316339> Role Not Found", description=f"No role named `{role_name}` exists.", color=discord.Color.red())
-        embed.set_footer(text="Ensure the role name is spelled correctly.")
-        await ctx.send(embed=embed)
-        return
-
-    await role.delete()
-
-    embed = discord.Embed(title="<:currencypaw:1346100210899619901> Role Deleted Successfully", color=discord.Color.red())
-    embed.add_field(name="Deleted Role", value=role.name, inline=False)
-    embed.set_footer(text=f"Deleted by {ctx.author.display_name}")
-    await ctx.send(embed=embed)
-
+ 
 # Command: Add Role to User
 @bot.command(name="ra")
 @commands.has_permissions(manage_roles=True)
