@@ -10,12 +10,22 @@ class Owner(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command(name="reload")
-    @commands.is_owner()
     async def reload(self, ctx, extension: str):
         """Reloads a specific cog. Only the bot owner can use this."""
+        if not await self.bot.is_owner(ctx.author):
+            return await self.send_embed(ctx, "<:cancel:1346853536738316339> Error",
+                                         "Only the bot owner can reload cogs.", discord.Color.red())
+
+        cog_name = f"cogs.{extension}"
+
+        if cog_name not in self.bot.extensions:
+            return await self.send_embed(ctx, "<:cancel:1346853536738316339> Error",
+                                         f"Extension `{extension}` has not been loaded.", discord.Color.red())
+
         try:
-            await self.bot.unload_extension(f"cogs.{extension}")
-            await self.bot.load_extension(f"cogs.{extension}")
+            # Unload & reload the cog
+            await self.bot.unload_extension(cog_name)
+            await self.bot.load_extension(cog_name)
             await self.send_embed(ctx, "<:success:1346853488738566175> Success",
                                   f"Reloaded `{extension}` cog.", discord.Color.green())
         except Exception as e:
