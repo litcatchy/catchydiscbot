@@ -20,13 +20,11 @@ class Moderation(commands.Cog):
             await ctx.send(f"<:cancel:1346853536738316339> Skill issue, slaves cannot use the command on the server owner")
             return
 
-        # Time parsing: allow minutes, hours, days
         time_units = {'m': 'minutes', 'h': 'hours', 'd': 'days'}
 
-        # Extract the value and unit
         try:
-            unit = time[-1]  # last character is the time unit
-            value = int(time[:-1])  # everything except the last character is the value
+            unit = time[-1]
+            value = int(time[:-1])
             if unit not in time_units:
                 await ctx.send("Invalid time unit. Use 'm' for minutes, 'h' for hours, 'd' for days.")
                 return
@@ -34,10 +32,8 @@ class Moderation(commands.Cog):
             await ctx.send("Invalid time format. Example: `10m`, `1h`, `1d`.")
             return
 
-        # Calculate the timeout duration
         timeout_duration = timedelta(**{time_units[unit]: value})
 
-        # Apply the timeout
         try:
             await member.timeout(timeout_duration)
             await ctx.send(f"{member.mention} has been successfully timed out for {time} <:success:1346853488738566175>.")
@@ -53,11 +49,11 @@ class Moderation(commands.Cog):
             await ctx.send(f"<:cancel:1346853536738316339> Skill issue, slaves cannot use the command on the server owner")
             return
 
-        if member.timeout is None:
+        if member.communication_disabled_until is None:
             await ctx.send(f"{member.mention} is not timed out. <:cancel:1346853536738316339>")
         else:
             try:
-                await member.timeout(None)  # Remove timeout
+                await member.timeout(None)
                 await ctx.send(f"{member.mention} has been successfully untimed out. <:success:1346853488738566175>")
             except discord.Forbidden:
                 await ctx.send(f"I don't have permission to untimeout {member.mention} <:cancel:1346853536738316339>.")
@@ -114,5 +110,18 @@ class Moderation(commands.Cog):
         except discord.HTTPException:
             await ctx.send(f"An error occurred while kicking {member.mention} <:cancel:1346853536738316339>.")
 
-def setup(bot):
-    bot.add_cog(Moderation(bot))
+    @commands.command()
+    async def reload(self, ctx, extension):
+        """Reload a cog. Only available to the server owner."""
+        if ctx.author.id != self.bot.owner_id:
+            await ctx.send(f"<:cancel:1346853536738316339> Skill issue, slaves cannot use the command on the server owner")
+            return
+
+        try:
+            await self.bot.reload_extension(f"cogs.{extension}")
+            await ctx.send(f"{extension} has been reloaded. <:success:1346853488738566175>")
+        except Exception as e:
+            await ctx.send(f"Error reloading {extension}: {str(e)} <:cancel:1346853536738316339>")
+
+async def setup(bot):
+    await bot.add_cog(Moderation(bot))
