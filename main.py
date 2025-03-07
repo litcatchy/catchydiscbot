@@ -64,7 +64,7 @@ async def role_delete(ctx, *, role_name: str):
     role = discord.utils.get(guild.roles, name=role_name)
 
     if role is None:
-        embed = discord.Embed(title="❌ Role Not Found", description=f"No role named `{role_name}` exists.", color=discord.Color.red())
+        embed = discord.Embed(title="<:cancel:1346853536738316339> Role Not Found", description=f"No role named `{role_name}` exists.", color=discord.Color.red())
         embed.set_footer(text="Ensure the role name is spelled correctly.")
         await ctx.send(embed=embed)
         return
@@ -84,13 +84,13 @@ async def role_add(ctx, member: discord.Member, *, role_name: str):
     role = discord.utils.get(guild.roles, name=role_name)
 
     if role is None:
-        embed = discord.Embed(title="❌ Role Not Found", description=f"{ctx.author.mention} No role named `{role_name}` exists.", color=discord.Color.red())
+        embed = discord.Embed("description=f"{ctx.author.mention} No role named `{role_name}` exists.", color=discord.Color.red())
         embed.set_footer(text="Ensure the role name is spelled correctly.")
         await ctx.send(embed=embed)
         return
 
     if role in member.roles:
-        embed = discord.Embed(title="⚠️ Role Already Assigned", description=f"{ctx.author.mention}, {member.mention} already has the `{role.name}` role.", color=discord.Color.orange())
+        embed = discord.Embed("description=<:mention:1347449690849022092> f"{ctx.author.mention} {member.mention} already has the `{role.name}` role.", color=discord.Color.orange())
         await ctx.send(embed=embed)
         return
 
@@ -133,7 +133,7 @@ async def role_remove(ctx, member: discord.Member, *, role_name: str):
 
     if role is None:
         embed = discord.Embed(
-            title="❌ Role Not Found",
+            title="<:cancel:1346853536738316339> Role Not Found",
             description=f"{ctx.author.mention}, no role named `{role_name}` exists.",
             color=discord.Color.red()
         )
@@ -143,7 +143,7 @@ async def role_remove(ctx, member: discord.Member, *, role_name: str):
 
     if role not in member.roles:
         embed = discord.Embed(
-            title="⚠️ User Doesn't Have This Role",
+            title="<:mention:1347449690849022092> User Doesn't Have This Role",
             description=f"{ctx.author.mention}, {member.mention} does not have the `{role.name}` role.",
             color=discord.Color.orange()
         )
