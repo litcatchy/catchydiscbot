@@ -1,116 +1,95 @@
 import discord
 from discord.ext import commands
 import datetime
-import re
 
 class Moderation(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    # 🔨 Kick Command (Handles invalid users)
+    async def send_embed(self, ctx, success: bool, message: str):
+        embed = discord.Embed(
+            description=f"{'<:check:1346853536738316338>' if success else '<:cancel:1346853536738316339>'} {message}",
+            color=0x57F287 if success else 0xED4245
+        )
+        await ctx.send(embed=embed)
+
     @commands.command()
-    @commands.has_permissions(kick_members=True)
-    async def kick(self, ctx, member: str = None, *, reason: str = "No reason provided"):
-        """Kicks a user from the server."""
+    @commands.has_permissions(kick_members)
+    async def kick(self, ctx, member: discord.Member = None, *, reason="No reason provided"):
         if not member:
-            return await ctx.send(embed=discord.Embed(description="<:mention:1347449690849022092> You must mention a valid user to kick.", color=discord.Color.red()))
-
-        member_obj = discord.utils.get(ctx.guild.members, mention=member) or discord.utils.get(ctx.guild.members, id=int(member) if member.isdigit() else None)
-
-        if not member_obj:
-            return await ctx.send(embed=discord.Embed(description=f"<:cancel:1346853536738316339> The user `{member}` is not in the server.", color=discord.Color.red()))
-
-        if ctx.guild.owner_id == member_obj.id:
-            return await ctx.send(embed=discord.Embed(description="<:cancel:1346853536738316339> Skill issue, you can't use this command on the server owner.", color=discord.Color.red()))
-
-        if ctx.author.top_role <= member_obj.top_role:
-            return await ctx.send(embed=discord.Embed(description=f"<:cancel:1346853536738316339> You cannot kick {member_obj.mention} because they have a higher or equal role.", color=discord.Color.red()))
-
+            return await self.send_embed(ctx, False, "You must mention a user to kick.")
+        if member == ctx.guild.owner:
+            return await self.send_embed(ctx, False, "Skill issue, slaves cannot use the command on the server owner.")
         try:
-            await member_obj.kick(reason=reason)
-            await ctx.send(embed=discord.Embed(description=f"<:success:1346853488738566175> {member_obj.mention} has been kicked.\n**Reason:** {reason}", color=discord.Color.green()))
+            await member.kick(reason=reason)
+            await self.send_embed(ctx, True, f"Successfully kicked {member.mention}.")
         except discord.Forbidden:
-            await ctx.send(embed=discord.Embed(description=f"<:cancel:1346853536738316339> I do not have permission to kick {member_obj.mention}.", color=discord.Color.red()))
-        except Exception as e:
-            await ctx.send(embed=discord.Embed(description=f"<:cancel:1346853536738316339> Failed to kick.\nError: `{e}`", color=discord.Color.red()))
+            await self.send_embed(ctx, False, "I don't have permission to kick this user.")
 
-    # 🔨 Ban Command (Handles invalid users)
-    @commands.command(name="ban")
-    @commands.has_permissions(ban_members=True)
-    async def ban(self, ctx, member: str = None, *, reason: str = "No reason provided"):
-        """Bans a user from the server using mention or ID."""
-        if not member:
-            return await ctx.send(embed=discord.Embed(description="<:mention:1347449690849022092> You must mention a valid user to ban.", color=discord.Color.red()))
-
-        try:
-            user = await self.bot.fetch_user(int(member) if member.isdigit() else member.strip("<@!>"))
-        except discord.NotFound:
-            return await ctx.send(embed=discord.Embed(description=f"<:cancel:1346853536738316339> The user `{member}` does not exist.", color=discord.Color.red()))
-        except ValueError:
-            return await ctx.send(embed=discord.Embed(description=f"<:cancel:1346853536738316339> Invalid user ID or mention.", color=discord.Color.red()))
-
-        try:
-            await ctx.guild.ban(user, reason=reason)
-            await ctx.send(embed=discord.Embed(description=f"<:success:1346853488738566175> {user.mention} has been banned.\n**Reason:** {reason}", color=discord.Color.green()))
-        except discord.Forbidden:
-            await ctx.send(embed=discord.Embed(description=f"<:cancel:1346853536738316339> I do not have permission to ban {user.mention}.", color=discord.Color.red()))
-        except Exception as e:
-            await ctx.send(embed=discord.Embed(description=f"<:cancel:1346853536738316339> Failed to ban.\nError: `{e}`", color=discord.Color.red()))
-
-    # 🔨 Unban Command (Supports User ID)
-    @commands.command(name="unban")
-    @commands.has_permissions(ban_members=True)
-    async def unban(self, ctx, user: str):
-        """Unbans a user using mention or ID."""
-        try:
-            user_obj = await self.bot.fetch_user(int(user) if user.isdigit() else user.strip("<@!>"))
-            await ctx.guild.unban(user_obj)
-            await ctx.send(embed=discord.Embed(description=f"<:success:1346853488738566175> {user_obj.mention} has been unbanned.", color=discord.Color.green()))
-        except discord.NotFound:
-            await ctx.send(embed=discord.Embed(description=f"<:cancel:1346853536738316339> The user `{user}` is not banned or does not exist.", color=discord.Color.red()))
-        except Exception as e:
-            await ctx.send(embed=discord.Embed(description=f"<:cancel:1346853536738316339> Failed to unban.\nError: `{e}`", color=discord.Color.red()))
-
-    # 🔨 Timeout Command (Supports `10m`, `1d`, etc.)
     @commands.command()
-    @commands.has_permissions(moderate_members=True)
-    async def timeout(self, ctx, member: discord.Member = None, duration: str = None, *, reason: str = "No reason provided"):
-        """Timeouts a user for a specified duration."""
+    @commands.has_permissions(ban_members)
+    async def ban(self, ctx, member: discord.Member = None, *, reason="No reason provided"):
         if not member:
-            return await ctx.send(embed=discord.Embed(description="<:mention:1347449690849022092> You must mention a valid user to timeout.", color=discord.Color.red()))
+            return await self.send_embed(ctx, False, "You must mention a user to ban.")
+        if member == ctx.guild.owner:
+            return await self.send_embed(ctx, False, "Skill issue, slaves cannot use the command on the server owner.")
+        try:
+            await member.ban(reason=reason)
+            await self.send_embed(ctx, True, f"Successfully banned {member.mention}.")
+        except discord.Forbidden:
+            await self.send_embed(ctx, False, "I don't have permission to ban this user.")
 
+    @commands.command()
+    @commands.has_permissions(ban_members)
+    async def unban(self, ctx, user_id: int = None):
+        if not user_id:
+            return await self.send_embed(ctx, False, "You must provide a valid user ID to unban.")
+        try:
+            user = await self.bot.fetch_user(user_id)
+            await ctx.guild.unban(user)
+            await self.send_embed(ctx, True, f"Successfully unbanned {user.mention}.")
+        except discord.NotFound:
+            await self.send_embed(ctx, False, "That user ID is not banned or does not exist.")
+        except discord.Forbidden:
+            await self.send_embed(ctx, False, "I don't have permission to unban this user.")
+
+    @commands.command()
+    @commands.has_permissions(moderate_members)
+    async def timeout(self, ctx, member: discord.Member = None, duration: str = None, *, reason="No reason provided"):
+        if not member:
+            return await self.send_embed(ctx, False, "You must mention a user to timeout.")
+        if member == ctx.guild.owner:
+            return await self.send_embed(ctx, False, "Skill issue, slaves cannot use the command on the server owner.")
         if not duration:
-            return await ctx.send(embed=discord.Embed(description="<:cancel:1346853536738316339> You must specify a duration.\nExample: `10m` (10 minutes), `1h` (1 hour), `1d` (1 day).", color=discord.Color.red()))
+            return await self.send_embed(ctx, False, "You must specify a duration (e.g., `10m`, `1h`, `1d`).")
 
-        unit_multipliers = {"s": 1, "m": 60, "h": 3600, "d": 86400}
-        match = re.match(r"(\d+)([smhd])", duration.lower())
-
-        if not match:
-            return await ctx.send(embed=discord.Embed(description="<:cancel:1346853536738316339> Invalid duration format. Use `s`, `m`, `h`, or `d`.\nExample: `10m`, `1h`, `1d`", color=discord.Color.red()))
-
-        amount, unit = match.groups()
-        timeout_seconds = int(amount) * unit_multipliers[unit]
-        timeout_until = discord.utils.utcnow() + datetime.timedelta(seconds=timeout_seconds)
-
+        time_units = {"s": 1, "m": 60, "h": 3600, "d": 86400}
         try:
-            await member.edit(timed_out_until=timeout_until, reason=reason)
-            await ctx.send(embed=discord.Embed(description=f"<:success:1346853488738566175> {member.mention} has been timed out for `{duration}`.\n**Reason:** {reason}", color=discord.Color.green()))
-        except Exception as e:
-            await ctx.send(embed=discord.Embed(description=f"<:cancel:1346853536738316339> Failed to timeout.\nError: `{e}`", color=discord.Color.red()))
+            unit = duration[-1]
+            if unit not in time_units:
+                raise ValueError("Invalid duration unit.")
+            time_amount = int(duration[:-1])
+            total_seconds = time_amount * time_units[unit]
+            until = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=total_seconds)
+            await member.timeout(until, reason=reason)
+            await self.send_embed(ctx, True, f"Successfully timed out {member.mention} for {duration}.")
+        except ValueError:
+            await self.send_embed(ctx, False, "Invalid duration format. Use `s`, `m`, `h`, or `d` (e.g., `10m`, `1h`, `1d`).")
+        except discord.Forbidden:
+            await self.send_embed(ctx, False, "I don't have permission to timeout this user.")
 
-    # 🔨 Untimeout Command
     @commands.command()
-    @commands.has_permissions(moderate_members=True)
+    @commands.has_permissions(moderate_members)
     async def untimeout(self, ctx, member: discord.Member = None):
-        """Removes a timeout from a user."""
         if not member:
-            return await ctx.send(embed=discord.Embed(description="<:mention:1347449690849022092> You must mention a valid user to untimeout.", color=discord.Color.red()))
-
+            return await self.send_embed(ctx, False, "You must mention a user to remove timeout.")
+        if member == ctx.guild.owner:
+            return await self.send_embed(ctx, False, "Skill issue, slaves cannot use the command on the server owner.")
         try:
-            await member.edit(timed_out_until=None)
-            await ctx.send(embed=discord.Embed(description=f"<:success:1346853488738566175> {member.mention} has been un-timed out.", color=discord.Color.green()))
-        except Exception as e:
-            await ctx.send(embed=discord.Embed(description=f"<:cancel:1346853536738316339> Failed to remove timeout.\nError: `{e}`", color=discord.Color.red()))
+            await member.timeout(None)
+            await self.send_embed(ctx, True, f"Successfully removed timeout from {member.mention}.")
+        except discord.Forbidden:
+            await self.send_embed(ctx, False, "I don't have permission to remove timeout from this user.")
 
 async def setup(bot):
     await bot.add_cog(Moderation(bot))
