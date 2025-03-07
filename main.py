@@ -2,11 +2,12 @@ import discord
 from discord.ext import commands
 import os
 
-# Set up intents to allow the bot to access member data
+# Set up intents to allow the bot to access member data and message content
 intents = discord.Intents.default()
-intents.members = True
+intents.members = True  # For member-related events (e.g., member join, leave)
+intents.message_content = True  # For accessing message content
 
-# Create the bot instance with the command prefix
+# Create the bot instance with the command prefix and the updated intents
 bot = commands.Bot(command_prefix=",", intents=intents)
 
 # Event to notify when the bot is ready
@@ -52,6 +53,19 @@ async def reload(ctx, extension):
         await ctx.send(f"{extension} has been reloaded.")
     except Exception as e:
         await ctx.send(f"Error reloading {extension}: {str(e)}")
+
+# Function to load cogs on startup
+async def load_cogs():
+    for filename in os.listdir("./cogs"):
+        if filename.endswith(".py"):
+            try:
+                await bot.load_extension(f"cogs.{filename[:-3]}")
+                print(f"Loaded cog: {filename}")
+            except Exception as e:
+                print(f"Failed to load cog {filename}: {e}")
+
+# Start loading cogs on bot startup
+bot.loop.create_task(load_cogs())
  
 # Command: Role Help (Shortened List)
 @bot.command(name="rh")
