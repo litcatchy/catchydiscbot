@@ -84,15 +84,21 @@ async def role_add(ctx, member: discord.Member, *, role_name: str):
     role = discord.utils.get(guild.roles, name=role_name)
 
     if role is None:
-        embed = discord.Embed("description=f"{ctx.author.mention} No role named `{role_name}` exists.", color=discord.Color.red())
-        embed.set_footer(text="Ensure the role name is spelled correctly.")
-        await ctx.send(embed=embed)
-        return
+    embed = discord.Embed(
+        description=f"{ctx.author.mention} No role named `{role_name}` exists.",
+        color=discord.Color.red()
+    )
+    embed.set_footer(text="Ensure the role name is spelled correctly.")
+    await ctx.send(embed=embed)
+    return
 
-    if role in member.roles:
-        embed = discord.Embed("description=<:mention:1347449690849022092> f"{ctx.author.mention} {member.mention} already has the `{role.name}` role.", color=discord.Color.orange())
-        await ctx.send(embed=embed)
-        return
+if role in member.roles:
+    embed = discord.Embed(
+        description=f"<:mention:1347449690849022092> {ctx.author.mention} {member.mention} already has the `{role.name}` role.",
+        color=discord.Color.orange()
+    )
+    await ctx.send(embed=embed)
+    return
 
     await member.add_roles(role)
 
