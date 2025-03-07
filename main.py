@@ -83,18 +83,20 @@ async def role_add(ctx, member: discord.Member, *, role_name: str):
     guild = ctx.guild
     role = discord.utils.get(guild.roles, name=role_name)
 
-   if role is None:
-    embed = discord.Embed(
-        description=f"{ctx.author.mention} <:cancel:1346853536738316339> No role named `{role_name}` exists.",
-        color=discord.Color.red()
-    )
-    embed.set_footer(text="Ensure the role name is spelled correctly.")
-    await ctx.send(embed=embed)
-    return  # Stops execution only if the role is None
+    if role is None:
+        embed = discord.Embed(
+            description=f"{ctx.author.mention} <:cancel:1346853536738316339> No role named `{role_name}` exists.",
+            color=discord.Color.red()
+        )
+        embed.set_footer(text="Ensure the role name is spelled correctly.")
+        await ctx.send(embed=embed)
+        return  # Stops execution if the role does not exist
 
-# Move this code outside the if-block so it executes when role is valid
-await member.add_roles(role)
-    embed = discord.Embed(title="<:currencypaw:1346100210899619901> Role Added Successfully", color=discord.Color.green())
+    # Add the role to the member
+    await member.add_roles(role)
+
+    # Success message
+    embed = discord.Embed(color=discord.Color.green())
     embed.add_field(name="User", value=member.mention, inline=False)
     embed.add_field(name="Added Role", value=role.name, inline=False)
     embed.set_footer(text=f"Executed by {ctx.author.display_name}")
