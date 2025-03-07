@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 import os
+import asyncio
 
 # Set up intents to allow the bot to access member data and message content
 intents = discord.Intents.default()
@@ -64,8 +65,12 @@ async def load_cogs():
             except Exception as e:
                 print(f"Failed to load cog {filename}: {e}")
 
-# Start loading cogs on bot startup
-bot.loop.create_task(load_cogs())
+# Define the setup_hook method to load cogs
+async def setup():
+    await load_cogs()
+
+# Start the setup_hook before the bot runs
+bot.setup_hook = setup
  
 # Command: Role Help (Shortened List)
 @bot.command(name="rh")
