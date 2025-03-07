@@ -6,76 +6,13 @@ class Moderation(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    # ✅ Kick Command
     @commands.command()
-    async def kick(self, ctx, member: discord.Member = None, *, reason: str = "No reason provided"):
-        """Kicks a member from the server."""
-        
-        # Manual permission check
-        if not ctx.author.guild_permissions.kick_members:
-            embed = discord.Embed(
-                title="❌ Missing Permissions",
-                description="You need the **Kick Members** permission to use this command.",
-                color=discord.Color.red()
-            )
-            await ctx.send(embed=embed)
-            return
+    async def timeout(self, ctx, member: discord.Member = None, duration: str = None, *, reason: str = None):
+        """Times out a user for a specified duration."""
 
-        if not member:
-            embed = discord.Embed(
-                title="⚠️ Mention Required",
-                description="You must mention a valid user to kick.",
-                color=discord.Color.red()
-            )
-            await ctx.send(embed=embed)
-            return
-
-        if member == ctx.guild.owner:
-            embed = discord.Embed(
-                title="❌ Cannot Kick Server Owner",
-                description="You cannot kick the **Server Owner**.",
-                color=discord.Color.red()
-            )
-            await ctx.send(embed=embed)
-            return
-
-        if ctx.author.top_role <= member.top_role:
-            embed = discord.Embed(
-                title="❌ Cannot Kick",
-                description="You cannot kick someone with a higher or equal role.",
-                color=discord.Color.red()
-            )
-            await ctx.send(embed=embed)
-            return
-
-        if not ctx.guild.me.guild_permissions.kick_members:
-            embed = discord.Embed(
-                title="❌ Missing Bot Permissions",
-                description="I don’t have permission to kick members.",
-                color=discord.Color.red()
-            )
-            await ctx.send(embed=embed)
-            return
-
-        await member.kick(reason=reason)
-
-        embed = discord.Embed(
-            title="✅ User Kicked",
-            description=f"{member.mention} has been kicked.\n**Reason:** {reason}",
-            color=discord.Color.green()
-        )
-        embed.set_footer(text=f"Kicked by {ctx.author}", icon_url=ctx.author.display_avatar.url)
-        await ctx.send(embed=embed)
-
-    # ✅ Timeout Command
-    @commands.command()
-    async def timeout(self, ctx, member: discord.Member = None, duration: str = None, *, reason: str = "No reason provided"):
-        """Mutes a user using Discord's timeout feature."""
-        
         if not ctx.author.guild_permissions.moderate_members:
             embed = discord.Embed(
-                title="❌ Missing Permissions",
-                description="You need the **Timeout Members** permission to use this command.",
+                description="<:cancel:1346853536738316339> You need the **Moderate Members** permission to use this command.",
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
@@ -83,8 +20,7 @@ class Moderation(commands.Cog):
 
         if not member:
             embed = discord.Embed(
-                title="⚠️ Mention Required",
-                description="You must mention a user to timeout.",
+                description="<:mention:1347449690849022092> You must mention a user to timeout.",
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
@@ -92,8 +28,7 @@ class Moderation(commands.Cog):
 
         if member == ctx.guild.owner:
             embed = discord.Embed(
-                title="❌ Cannot Timeout Server Owner",
-                description="You cannot timeout the **Server Owner**.",
+                description="Skill issue, slaves cannot use the command on the server owner.",
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
@@ -101,8 +36,7 @@ class Moderation(commands.Cog):
 
         if ctx.author.top_role <= member.top_role:
             embed = discord.Embed(
-                title="❌ Cannot Timeout",
-                description="You cannot timeout someone with a higher or equal role.",
+                description="<:cancel:1346853536738316339> You cannot timeout someone with a higher or equal role.",
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
@@ -110,8 +44,7 @@ class Moderation(commands.Cog):
 
         if not duration:
             embed = discord.Embed(
-                title="⚠️ Duration Required",
-                description="Specify a duration (e.g., `10m`, `1h`).",
+                description="<:mention:1347449690849022092> Specify a duration (e.g., `10m`, `1h`).",
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
@@ -126,8 +59,7 @@ class Moderation(commands.Cog):
             timeout_duration = timedelta(seconds=time_value * time_units[unit])
         except (ValueError, TypeError):
             embed = discord.Embed(
-                title="❌ Invalid Duration",
-                description="Use `s` (seconds), `m` (minutes), `h` (hours), `d` (days).",
+                description="<:cancel:1346853536738316339> Invalid duration. Use `s` (seconds), `m` (minutes), `h` (hours), `d` (days).",
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
@@ -135,8 +67,7 @@ class Moderation(commands.Cog):
 
         if not ctx.guild.me.guild_permissions.moderate_members:
             embed = discord.Embed(
-                title="❌ Missing Bot Permissions",
-                description="I don’t have permission to timeout members.",
+                description="<:cancel:1346853536738316339> I don’t have permission to timeout members.",
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
@@ -145,29 +76,25 @@ class Moderation(commands.Cog):
         try:
             await member.timeout(timeout_duration, reason=reason)
             embed = discord.Embed(
-                title="✅ User Timed Out",
-                description=f"{member.mention} timed out for **{duration}**.\n**Reason:** {reason}",
+                description=f"<:success:1346853488738566175> {member.mention} has been timed out for **{duration}**.\n**Reason:** {reason}",
                 color=discord.Color.green()
             )
             embed.set_footer(text=f"Timed out by {ctx.author}", icon_url=ctx.author.display_avatar.url)
             await ctx.send(embed=embed)
         except Exception as e:
             embed = discord.Embed(
-                title="❌ Failed to Timeout",
-                description=f"Error: `{e}`",
+                description=f"<:cancel:1346853536738316339> Failed to timeout.\nError: `{e}`",
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
 
-    # ✅ Untimeout Command
     @commands.command()
     async def untimeout(self, ctx, member: discord.Member = None):
         """Removes the timeout from a user."""
         
         if not ctx.author.guild_permissions.moderate_members:
             embed = discord.Embed(
-                title="❌ Missing Permissions",
-                description="You need the **Timeout Members** permission to use this command.",
+                description="<:cancel:1346853536738316339> You need the **Moderate Members** permission to use this command.",
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
@@ -175,8 +102,15 @@ class Moderation(commands.Cog):
 
         if not member:
             embed = discord.Embed(
-                title="⚠️ Mention Required",
-                description="You must mention a user to remove their timeout.",
+                description="<:mention:1347449690849022092> You must mention a user to remove their timeout.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        if member == ctx.guild.owner:
+            embed = discord.Embed(
+                description="Skill issue, slaves cannot use the command on the server owner.",
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
@@ -184,8 +118,7 @@ class Moderation(commands.Cog):
 
         if not ctx.guild.me.guild_permissions.moderate_members:
             embed = discord.Embed(
-                title="❌ Missing Bot Permissions",
-                description="I don’t have permission to untimeout members.",
+                description="<:cancel:1346853536738316339> I don’t have permission to untimeout members.",
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
@@ -194,16 +127,73 @@ class Moderation(commands.Cog):
         try:
             await member.timeout(None)
             embed = discord.Embed(
-                title="✅ Timeout Removed",
-                description=f"{member.mention} is no longer timed out.",
+                description=f"<:success:1346853488738566175> {member.mention} is no longer timed out.",
                 color=discord.Color.green()
             )
             embed.set_footer(text=f"Untimed out by {ctx.author}", icon_url=ctx.author.display_avatar.url)
             await ctx.send(embed=embed)
         except Exception as e:
             embed = discord.Embed(
-                title="❌ Failed to Remove Timeout",
-                description=f"Error: `{e}`",
+                description=f"<:cancel:1346853536738316339> Failed to remove timeout.\nError: `{e}`",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+
+    @commands.command()
+    async def kick(self, ctx, member: discord.Member = None, *, reason: str = None):
+        """Kicks a user from the server."""
+
+        if not ctx.author.guild_permissions.kick_members:
+            embed = discord.Embed(
+                description="<:cancel:1346853536738316339> You need the **Kick Members** permission to use this command.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        if not member:
+            embed = discord.Embed(
+                description="<:mention:1347449690849022092> You must mention a user to kick.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        if member == ctx.guild.owner:
+            embed = discord.Embed(
+                description="Skill issue, slaves cannot use the command on the server owner.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        if ctx.author.top_role <= member.top_role:
+            embed = discord.Embed(
+                description="<:cancel:1346853536738316339> You cannot kick someone with a higher or equal role.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        if not ctx.guild.me.guild_permissions.kick_members:
+            embed = discord.Embed(
+                description="<:cancel:1346853536738316339> I don’t have permission to kick members.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        try:
+            await member.kick(reason=reason)
+            embed = discord.Embed(
+                description=f"<:success:1346853488738566175> {member.mention} has been kicked.\n**Reason:** {reason}",
+                color=discord.Color.green()
+            )
+            embed.set_footer(text=f"Kicked by {ctx.author}", icon_url=ctx.author.display_avatar.url)
+            await ctx.send(embed=embed)
+        except Exception as e:
+            embed = discord.Embed(
+                description=f"<:cancel:1346853536738316339> Failed to kick.\nError: `{e}`",
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
