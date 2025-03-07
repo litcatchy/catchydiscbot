@@ -12,8 +12,7 @@ class MuteSystem(commands.Cog):
         # Check if the command user has permission
         if not ctx.author.guild_permissions.moderate_members:
             embed = discord.Embed(
-                title="❌ Missing Permissions",
-                description="You need the **Moderate Members** permission to use this command.",
+                description="<:cancel:1346853536738316339> You need the **Moderate Members** permission to use this command.",
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
@@ -22,8 +21,16 @@ class MuteSystem(commands.Cog):
         # Ensure a member is mentioned
         if not member:
             embed = discord.Embed(
-                title="⚠️ Mention Required",
-                description="You must mention a user to mute.",
+                description="<:mention:1347449690849022092> You must mention a user to mute.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        # Prevent muting the server owner
+        if member == ctx.guild.owner:
+            embed = discord.Embed(
+                description="Skill issue, slaves cannot use the command on the server owner.",
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
@@ -32,8 +39,7 @@ class MuteSystem(commands.Cog):
         # Check if a reason is provided
         if not reason:
             embed = discord.Embed(
-                title="⚠️ Reason Required",
-                description="Providing a reason is necessary because this action will be logged.",
+                description="<:mention:1347449690849022092> Providing a reason is necessary because this action will be logged.",
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
@@ -42,8 +48,7 @@ class MuteSystem(commands.Cog):
         # Check if the member has a higher role
         if ctx.author.top_role <= member.top_role:
             embed = discord.Embed(
-                title="❌ Cannot Mute",
-                description="You cannot mute someone with a higher or equal role.",
+                description="<:cancel:1346853536738316339> You cannot mute someone with a higher or equal role.",
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
@@ -53,8 +58,7 @@ class MuteSystem(commands.Cog):
         overwrite = ctx.channel.overwrites_for(member)
         if overwrite.attach_files is False and overwrite.embed_links is False:
             embed = discord.Embed(
-                title="ℹ️ Already Muted",
-                description=f"{member.mention} already does not have image and embed link permissions.",
+                description=f"<:cancel:1346853536738316339> {member.mention} already does not have image and embed link permissions.",
                 color=discord.Color.blue()
             )
             await ctx.send(embed=embed)
@@ -67,8 +71,7 @@ class MuteSystem(commands.Cog):
 
         # Success message
         embed = discord.Embed(
-            title="✅ User Muted",
-            description=f"{member.mention} has been muted from sending images and embed links.\n**Reason:** {reason}",
+            description=f"<:success:1346853488738566175> {member.mention} has been muted from sending images and embed links.\n**Reason:** {reason}",
             color=discord.Color.green()
         )
         embed.set_footer(text=f"Muted by {ctx.author}", icon_url=ctx.author.display_avatar.url)
@@ -81,8 +84,7 @@ class MuteSystem(commands.Cog):
         # Check if the command user has permission
         if not ctx.author.guild_permissions.moderate_members:
             embed = discord.Embed(
-                title="❌ Missing Permissions",
-                description="You need the **Moderate Members** permission to use this command.",
+                description="<:cancel:1346853536738316339> You need the **Moderate Members** permission to use this command.",
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
@@ -91,8 +93,16 @@ class MuteSystem(commands.Cog):
         # Ensure a member is mentioned
         if not member:
             embed = discord.Embed(
-                title="⚠️ Mention Required",
-                description="You must mention a user to unmute.",
+                description="<:mention:1347449690849022092> You must mention a user to unmute.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        # Prevent unmuting the server owner
+        if member == ctx.guild.owner:
+            embed = discord.Embed(
+                description="Skill issue, slaves cannot use the command on the server owner.",
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
@@ -101,8 +111,7 @@ class MuteSystem(commands.Cog):
         # Check if the member has a higher role
         if ctx.author.top_role <= member.top_role:
             embed = discord.Embed(
-                title="❌ Cannot Unmute",
-                description="You cannot unmute someone with a higher or equal role.",
+                description="<:cancel:1346853536738316339> You cannot unmute someone with a higher or equal role.",
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
@@ -112,8 +121,7 @@ class MuteSystem(commands.Cog):
         overwrite = ctx.channel.overwrites_for(member)
         if overwrite.attach_files is None and overwrite.embed_links is None:
             embed = discord.Embed(
-                title="ℹ️ Already Unmuted",
-                description=f"{member.mention} already has image and embed link permissions.",
+                description=f"<:cancel:1346853536738316339> {member.mention} already has image and embed link permissions.",
                 color=discord.Color.blue()
             )
             await ctx.send(embed=embed)
@@ -126,8 +134,7 @@ class MuteSystem(commands.Cog):
 
         # Success message
         embed = discord.Embed(
-            title="✅ User Unmuted",
-            description=f"{member.mention} can now send images and embed links again.",
+            description=f"<:success:1346853488738566175> {member.mention} can now send images and embed links again.",
             color=discord.Color.green()
         )
         embed.set_footer(text=f"Unmuted by {ctx.author}", icon_url=ctx.author.display_avatar.url)
