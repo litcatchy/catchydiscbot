@@ -1,7 +1,7 @@
 from discord.ext import commands
 import discord
 
-class RoleManagement(commands.Cog):
+class RoleAssignment(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -79,4 +79,4 @@ class RoleManagement(commands.Cog):
         await ctx.send(embed=embed)
 
 async def setup(bot):
-    await bot.add_cog(RoleManagement(bot))
+    await bot.add_cog(RoleAssignment(bot))
