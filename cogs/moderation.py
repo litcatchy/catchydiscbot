@@ -28,7 +28,7 @@ class Moderation(commands.Cog):
 
         if member == ctx.guild.owner:
             embed = discord.Embed(
-                description="Skill issue, slaves cannot use the command on the server owner.",
+                description="<:cancel:1346853536738316339> Skill issue, slaves cannot use the command on the server owner.",
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
