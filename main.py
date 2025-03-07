@@ -45,16 +45,6 @@ async def unload(ctx, extension):
     except Exception as e:
         await ctx.send(f"Error unloading {extension}: {str(e)}")
 
-# Command to reload a cog
-@bot.command()
-async def reload(ctx, extension):
-    """Reload a cog dynamically."""
-    try:
-        await bot.reload_extension(f"cogs.{extension}")
-        await ctx.send(f"{extension} has been reloaded.")
-    except Exception as e:
-        await ctx.send(f"Error reloading {extension}: {str(e)}")
-
 # Function to load cogs on startup
 async def load_cogs():
     for filename in os.listdir("./cogs"):
