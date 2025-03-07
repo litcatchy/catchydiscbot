@@ -9,7 +9,6 @@ class Moderation(commands.Cog):
     async def cog_command_error(self, ctx, error):
         """Handles errors globally for this cog and sends error messages to Discord."""
         embed = discord.Embed(color=discord.Color.red())
-
         if isinstance(error, commands.MissingRequiredArgument):
             embed.description = f"<:cancel:1346853536738316339> Missing required argument: `{error.param.name}`"
         elif isinstance(error, commands.BadArgument):
@@ -20,8 +19,7 @@ class Moderation(commands.Cog):
             embed.description = f"<:cancel:1346853536738316339> An error occurred: `{error.original}`"
         else:
             embed.description = f"<:cancel:1346853536738316339> Unexpected error: `{error}`"
-
-        await ctx.send(embed=embed)
+        return await ctx.send(embed=embed)
 
     # Kick Command
     @commands.command()
@@ -30,7 +28,6 @@ class Moderation(commands.Cog):
         if member == ctx.guild.owner:
             embed = discord.Embed(description="<:cancel:1346853536738316339> Skill issue, slaves cannot use the command on the server owner", color=discord.Color.red())
             return await ctx.send(embed=embed)
-
         await member.kick(reason=reason)
         embed = discord.Embed(description=f"<:success:1346853488738566175> Successfully kicked {member.mention}. Reason: {reason}", color=discord.Color.green())
         await ctx.send(embed=embed)
@@ -42,29 +39,23 @@ class Moderation(commands.Cog):
         if member == ctx.guild.owner:
             embed = discord.Embed(description="<:cancel:1346853536738316339> Skill issue, slaves cannot use the command on the server owner", color=discord.Color.red())
             return await ctx.send(embed=embed)
-
         await member.ban(reason=reason)
         embed = discord.Embed(description=f"<:success:1346853488738566175> Successfully banned {member.mention}. Reason: {reason}", color=discord.Color.green())
         await ctx.send(embed=embed)
 
-    # Unban Command (Fully Fixed)
+    # Unban Command (Fixed)
     @commands.command()
     @commands.has_permissions(ban_members=True)
     async def unban(self, ctx, user_id: int):
-        banned_users = await ctx.guild.bans()
-
-        user = None
-        for entry in banned_users:
-            if entry.user.id == user_id:
-                user = entry.user
-                break
+        banned_users = [entry async for entry in ctx.guild.bans()]  # Properly awaiting the async generator
+        user = discord.utils.get(banned_users, user=lambda u: u.user.id == user_id)
 
         if user is None:
             embed = discord.Embed(description="<:cancel:1346853536738316339> That user is not banned.", color=discord.Color.red())
             return await ctx.send(embed=embed)
 
-        await ctx.guild.unban(user)
-        embed = discord.Embed(description=f"<:success:1346853488738566175> Successfully unbanned {user.mention}.", color=discord.Color.green())
+        await ctx.guild.unban(user.user)
+        embed = discord.Embed(description=f"<:success:1346853488738566175> Successfully unbanned {user.user.mention}.", color=discord.Color.green())
         await ctx.send(embed=embed)
 
     # Timeout Command
