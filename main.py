@@ -83,6 +83,7 @@ async def role_add(ctx, member: discord.Member, *, role_name: str):
     guild = ctx.guild
     role = discord.utils.get(guild.roles, name=role_name)
 
+    # Check if role exists
     if role is None:
         embed = discord.Embed(
             description=f"{ctx.author.mention} <:cancel:1346853536738316339> No role named `{role_name}` exists.",
@@ -90,7 +91,25 @@ async def role_add(ctx, member: discord.Member, *, role_name: str):
         )
         embed.set_footer(text="Ensure the role name is spelled correctly.")
         await ctx.send(embed=embed)
-        return  # Stops execution if the role does not exist
+        return  
+
+    # Check if bot has permission to manage roles
+    if not ctx.guild.me.guild_permissions.manage_roles:
+        embed = discord.Embed(
+            description=f"{ctx.author.mention} <:cancel:1346853536738316339> I do not have permission to **Manage Roles**.",
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
+        return  
+
+    # Check if the bot's role is higher than the target role
+    if role >= ctx.guild.me.top_role:
+        embed = discord.Embed(
+            description=f"{ctx.author.mention} <:cancel:1346853536738316339> I cannot assign `{role.name}` because it is higher or equal to my highest role.",
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
+        return  
 
     # Add the role to the member
     await member.add_roles(role)
