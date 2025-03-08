@@ -5,6 +5,10 @@ on:
     - cron: "0 */6 * * *"  # Runs every 6 hours
   workflow_dispatch:  # Allows manual start
 
+concurrency:
+  group: bot-deployment
+  cancel-in-progress: true  # Cancels previous runs before starting a new one
+
 jobs:
   run-bot:
     runs-on: ubuntu-latest
