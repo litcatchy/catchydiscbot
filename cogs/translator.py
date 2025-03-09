@@ -2,65 +2,60 @@ import discord
 from discord.ext import commands
 from deep_translator import GoogleTranslator
 from langdetect import detect
-import re
 
 class Translator(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.translator_enabled = True  # Default state is ON
+        self.enabled_guilds = {}  # Dictionary to store enabled guilds
 
-    def is_english(self, text):
-        """Detect if the message is in English or another language."""
-        try:
-            lang = detect(text)
+    async def send_embed(self, ctx, description, color):
+        embed = discord.Embed(description=description, color=color)
+        await ctx.send(embed=embed)
 
-            # If the detected language is English, check if it contains non-Latin characters
-            if lang == 'en':
-                if re.search(r'[^\x00-\x7F]+', text):  # Detects non-ASCII characters (non-Latin scripts)
-                    return False  # Treats English words in non-Latin script as a different language
-                return True  # If it’s pure English, return True
+    @commands.command(name="translator")
+    async def translator(self, ctx, mode: str):
+        """Turn on or off the auto-translation feature. Only the server owner can use this."""
+        if not ctx.author == ctx.guild.owner:
+            return await self.send_embed(ctx, "<:cancel:1346853536738316339> Only the server owner can turn it on or off.", discord.Color.red())
 
-            return False  # If the language is not English, return False
-        except Exception as e:
-            print(f"Language detection error: {e}")
-            return False  # If detection fails, assume it's non-English
+        if mode.lower() == "on":
+            self.enabled_guilds[ctx.guild.id] = True
+            return await self.send_embed(ctx, "<:success:1346853488738566175> Auto-translation enabled.", discord.Color.green())
 
-    async def translate_message(self, message):
-        """Translate non-English messages into English."""
-        if not self.is_english(message.content):  # If message is NOT in English, translate it
-            translated = GoogleTranslator(source='auto', target='en').translate(message.content)
+        elif mode.lower() == "off":
+            self.enabled_guilds[ctx.guild.id] = False
+            return await self.send_embed(ctx, "<:cancel:1346853536738316339> Auto-translation disabled.", discord.Color.red())
 
-            embed = discord.Embed(
-                description=f"**Original:** {message.content}\n**Translated:** {translated}",
-                color=discord.Color.blue()
-            )
-            await message.channel.send(embed=embed)
+        else:
+            return await self.send_embed(ctx, "<:cancel:1346853536738316339> Invalid option! Use `,translator on` or `,translator off`.", discord.Color.red())
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        """Detects messages and translates if necessary."""
-        if message.author.bot or not self.translator_enabled:
-            return  # Ignore bot messages and if translator is off
+        if message.author.bot or message.guild is None:
+            return
 
-        await self.translate_message(message)  # Translate message if needed
+        guild_id = message.guild.id
+        if guild_id not in self.enabled_guilds or not self.enabled_guilds[guild_id]:
+            return  # If translation is off, do nothing
 
-    @commands.command(name="on translator")
-    async def enable_translator(self, ctx):
-        """Enable the translator. Only the server owner can use this."""
-        if ctx.guild.owner_id != ctx.author.id:
-            return await ctx.send("<:cancel:1346853536738316339> Only the server owner can turn it on or off.")
-        
-        self.translator_enabled = True
-        await ctx.send("<:success:1346853488738566175> Translator feature enabled.")
+        try:
+            detected_lang = detect(message.content)  # Detect language
 
-    @commands.command(name="off translator")
-    async def disable_translator(self, ctx):
-        """Disable the translator. Only the server owner can use this."""
-        if ctx.guild.owner_id != ctx.author.id:
-            return await ctx.send("<:cancel:1346853536738316339> Only the server owner can turn it on or off.")
+            # Ignore messages already in English unless they look like English but are not
+            if detected_lang == "en":
+                return
 
-        self.translator_enabled = False
-        await ctx.send("<:success:1346853488738566175> Translator feature disabled.")
+            translated_text = GoogleTranslator(source="auto", target="en").translate(message.content)
+
+            if translated_text and translated_text.lower() != message.content.lower():
+                embed = discord.Embed(
+                    description=f"**Original:** {message.content}\n➡ **Translated:** {translated_text}",
+                    color=discord.Color.blue()
+                )
+                await message.channel.send(embed=embed)
+
+        except Exception as e:
+            print(f"Translation Error: {e}")
 
 async def setup(bot):
     await bot.add_cog(Translator(bot))
