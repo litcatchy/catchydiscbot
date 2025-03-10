@@ -27,7 +27,7 @@ class Snipe(commands.Cog):
                 super().__init__()
                 self.timeout = 30
 
-            @discord.ui.button(label="⬅ Page Back", style=discord.ButtonStyle.primary, disabled=True)
+            @discord.ui.button(label="Page Back", style=discord.ButtonStyle.primary, disabled=True)
             async def previous_page(self, interaction: discord.Interaction, button: discord.ui.Button):
                 nonlocal index
                 index -= 1
@@ -36,7 +36,7 @@ class Snipe(commands.Cog):
                 self.children[1].disabled = False
                 await interaction.response.edit_message(embed=await update_embed(), view=self)
 
-            @discord.ui.button(label="Page Next ➡", style=discord.ButtonStyle.primary)
+            @discord.ui.button(label="Page Next", style=discord.ButtonStyle.primary)
             async def next_page(self, interaction: discord.Interaction, button: discord.ui.Button):
                 nonlocal index
                 index += 1
