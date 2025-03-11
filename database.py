@@ -1,9 +1,13 @@
 import sqlite3
+import os
 
 class Database:
     def __init__(self, db_path="data/stats.db"):
+        # ✅ Ensure the 'data' folder exists
+        os.makedirs("data", exist_ok=True)
+
         self.db_path = db_path
-        self.conn = sqlite3.connect(self.db_path)
+        self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self.cursor = self.conn.cursor()
         self.create_tables()
 
