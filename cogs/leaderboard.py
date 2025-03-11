@@ -2,22 +2,14 @@ import discord
 from discord.ext import commands
 import sqlite3
 import asyncio
-import os
-from collections import defaultdict
 
-# ✅ Ensure 'data' folder exists
-os.makedirs("data", exist_ok=True)
-
-# ✅ Database Class (Stores Message Counts & VC Time)
 class Database:
     def __init__(self, db_path="data/stats.db"):
-        self.db_path = db_path
-        self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        self.conn = sqlite3.connect(db_path, check_same_thread=False)
         self.cursor = self.conn.cursor()
         self.create_tables()
 
     def create_tables(self):
-        """Creates tables if they don't exist."""
         self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS user_stats (
                 user_id INTEGER PRIMARY KEY,
@@ -28,7 +20,6 @@ class Database:
         self.conn.commit()
 
     def update_messages(self, user_id):
-        """Increases message count (only counts once per 4 seconds)."""
         self.cursor.execute("""
             INSERT INTO user_stats (user_id, messages_sent)
             VALUES (?, 1)
@@ -37,7 +28,6 @@ class Database:
         self.conn.commit()
 
     def update_vc_time(self, user_id, seconds):
-        """Increases VC time (in seconds)."""
         self.cursor.execute("""
             INSERT INTO user_stats (user_id, vc_time)
             VALUES (?, ?)
@@ -46,108 +36,149 @@ class Database:
         self.conn.commit()
 
     def get_user_stats(self, user_id):
-        """Gets stats for a specific user."""
         self.cursor.execute("SELECT messages_sent, vc_time FROM user_stats WHERE user_id = ?", (user_id,))
         return self.cursor.fetchone() or (0, 0)
 
-    def get_top_chatters(self, limit=10):
-        """Gets top users by message count."""
+    def get_top_chatters(self, limit=50):
         self.cursor.execute("SELECT user_id, messages_sent FROM user_stats ORDER BY messages_sent DESC LIMIT ?", (limit,))
         return self.cursor.fetchall()
 
-    def get_top_vc(self, limit=10):
-        """Gets top users by VC time."""
+    def get_top_vc(self, limit=50):
         self.cursor.execute("SELECT user_id, vc_time FROM user_stats ORDER BY vc_time DESC LIMIT ?", (limit,))
         return self.cursor.fetchall()
 
-    def close(self):
-        """Closes the database connection."""
-        self.conn.close()
-
-# ✅ Load Database
 db = Database()
-
-# ✅ Spam Tracking (5 Messages in 10 Sec)
-spam_tracker = defaultdict(list)
 
 class Leaderboard(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.message_count = {}  # Tracks last message time for spam warning
+        self.vc_tracking = {}  # Tracks when users join VC
 
-    # ✅ Message Counter with Spam Protection
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.bot:
             return
 
         user_id = message.author.id
-        server_owner_id = message.guild.owner_id  # Get server owner ID
+        db.update_messages(user_id)
 
-        # ✅ Track message timestamps
-        spam_tracker[user_id].append(message.created_at.timestamp())
+        # Spam Warning System
+        if message.author.id in self.message_count:
+            self.message_count[user_id].append(message.created_at.timestamp())
+        else:
+            self.message_count[user_id] = [message.created_at.timestamp()]
 
-        # ✅ Remove messages older than 10 seconds
-        spam_tracker[user_id] = [t for t in spam_tracker[user_id] if t > message.created_at.timestamp() - 10]
+        self.message_count[user_id] = [t for t in self.message_count[user_id] if t > message.created_at.timestamp() - 10]
 
-        # ✅ Spam Warning (Only if NOT Server Owner)
-        if len(spam_tracker[user_id]) >= 5 and user_id != server_owner_id:
+        if len(self.message_count[user_id]) >= 5 and message.author.id != message.guild.owner_id:
             embed = discord.Embed(
                 description=f"<:currencypaw:1346100210899619901> **{message.author.mention}, stop spamming!**",
                 color=discord.Color.red()
             )
-            warning = await message.channel.send(embed=embed)
+            msg = await message.channel.send(embed=embed)
             await asyncio.sleep(5)
-            await warning.delete()
+            await msg.delete()
 
-        # ✅ Update Database (only count once per 4 sec)
-        last_msg_time = spam_tracker[user_id][-1] if spam_tracker[user_id] else 0
-        if message.created_at.timestamp() - last_msg_time >= 4:
-            db.update_messages(user_id)
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member, before, after):
+        user_id = member.id
 
-    # ✅ User Stats Command
-    @commands.command(name="lb")
+        if after.channel and not before.channel:
+            self.vc_tracking[user_id] = asyncio.get_event_loop().time()
+        elif before.channel and not after.channel and user_id in self.vc_tracking:
+            time_spent = asyncio.get_event_loop().time() - self.vc_tracking[user_id]
+            db.update_vc_time(user_id, int(time_spent))
+            del self.vc_tracking[user_id]
+
+    @commands.command(name="stats")
     async def user_stats(self, ctx, member: discord.Member = None):
         member = member or ctx.author
         messages_sent, vc_time = db.get_user_stats(member.id)
 
-        embed = discord.Embed(
-            title=f"📊 Stats for {member.display_name}",
-            color=discord.Color.blue()
-        )
-        embed.set_thumbnail(url=member.avatar.url if member.avatar else None)
-        embed.add_field(name="💬 Messages Sent", value=f"**{messages_sent}**", inline=True)
-        embed.add_field(name="🎙️ VC Time", value=f"**{vc_time // 3600}h {vc_time % 3600 // 60}m {vc_time % 60}s**", inline=True)
-        embed.set_footer(text="Leaderboard System")
+        hours, remainder = divmod(vc_time, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        vc_time_formatted = f"{hours}h {minutes}m {seconds}s"
 
+        embed = discord.Embed(title=f"Stats for {member.display_name}", color=discord.Color.blue())
+        embed.add_field(name="Messages Sent", value=f"{messages_sent}", inline=True)
+        embed.add_field(name="VC Time", value=f"{vc_time_formatted}", inline=True)
+        embed.set_footer(text="Leaderboard System")
         await ctx.send(embed=embed)
 
-    # ✅ Top Chat Leaderboard Command
     @commands.command(name="topchat")
     async def top_chat(self, ctx):
-        top_users = db.get_top_chatters(limit=10)
+        top_users = db.get_top_chatters()
+        pages = [top_users[i:i+10] for i in range(0, len(top_users), 10)]
+        page_num = 0
 
-        embed = discord.Embed(title="🏆 Top Chatters", color=discord.Color.gold())
-        embed.set_thumbnail(url=ctx.guild.icon.url if ctx.guild.icon else None)
+        async def update_embed(interaction, page_num):
+            embed = discord.Embed(title="Top Chatters", color=discord.Color.gold())
+            for idx, (user_id, messages) in enumerate(pages[page_num], start=page_num * 10 + 1):
+                user = self.bot.get_user(user_id)
+                embed.add_field(name=f"#{idx} {user.display_name if user else 'Unknown'}", value=f"{messages} messages", inline=False)
+            embed.set_footer(text=f"Page {page_num + 1} of {len(pages)}")
+            await interaction.response.edit_message(embed=embed)
 
-        for rank, (user_id, messages) in enumerate(top_users, start=1):
-            user = ctx.guild.get_member(user_id)
-            embed.add_field(name=f"#{rank} {user.display_name if user else 'Unknown'}", value=f"💬 **{messages} messages**", inline=False)
+        embed = discord.Embed(title="Top Chatters", color=discord.Color.gold())
+        for idx, (user_id, messages) in enumerate(pages[page_num], start=1):
+            user = self.bot.get_user(user_id)
+            embed.add_field(name=f"#{idx} {user.display_name if user else 'Unknown'}", value=f"{messages} messages", inline=False)
+        embed.set_footer(text=f"Page {page_num + 1} of {len(pages)}")
 
-        await ctx.send(embed=embed)
+        view = discord.ui.View()
+        view.add_item(discord.ui.Button(label="Previous", style=discord.ButtonStyle.gray, custom_id="prev"))
+        view.add_item(discord.ui.Button(label="Next", style=discord.ButtonStyle.gray, custom_id="next"))
 
-    # ✅ Top VC Leaderboard Command
+        msg = await ctx.send(embed=embed, view=view)
+
+        async def button_callback(interaction):
+            nonlocal page_num
+            if interaction.data["custom_id"] == "next" and page_num < len(pages) - 1:
+                page_num += 1
+            elif interaction.data["custom_id"] == "prev" and page_num > 0:
+                page_num -= 1
+            await update_embed(interaction, page_num)
+
+        for button in view.children:
+            button.callback = button_callback
+
     @commands.command(name="topvc")
     async def top_vc(self, ctx):
-        top_users = db.get_top_vc(limit=10)
+        top_users = db.get_top_vc()
+        pages = [top_users[i:i+10] for i in range(0, len(top_users), 10)]
+        page_num = 0
 
-        embed = discord.Embed(title="🎙️ Top VC Users", color=discord.Color.gold())
-        embed.set_thumbnail(url=ctx.guild.icon.url if ctx.guild.icon else None)
+        async def update_embed(interaction, page_num):
+            embed = discord.Embed(title="Top VC Users", color=discord.Color.blue())
+            for idx, (user_id, vc_time) in enumerate(pages[page_num], start=page_num * 10 + 1):
+                user = self.bot.get_user(user_id)
+                embed.add_field(name=f"#{idx} {user.display_name if user else 'Unknown'}", value=f"{vc_time} seconds", inline=False)
+            embed.set_footer(text=f"Page {page_num + 1} of {len(pages)}")
+            await interaction.response.edit_message(embed=embed)
 
-        for rank, (user_id, vc_time) in enumerate(top_users, start=1):
-            user = ctx.guild.get_member(user_id)
-            embed.add_field(name=f"#{rank} {user.display_name if user else 'Unknown'}", value=f"🕒 **{vc_time // 3600}h {vc_time % 3600 // 60}m {vc_time % 60}s**", inline=False)
+        embed = discord.Embed(title="Top VC Users", color=discord.Color.blue())
+        for idx, (user_id, vc_time) in enumerate(pages[page_num], start=1):
+            user = self.bot.get_user(user_id)
+            embed.add_field(name=f"#{idx} {user.display_name if user else 'Unknown'}", value=f"{vc_time} seconds", inline=False)
+        embed.set_footer(text=f"Page {page_num + 1} of {len(pages)}")
 
-        await ctx.send(embed=embed)
+        view = discord.ui.View()
+        view.add_item(discord.ui.Button(label="Previous", style=discord.ButtonStyle.gray, custom_id="prev"))
+        view.add_item(discord.ui.Button(label="Next", style=discord.ButtonStyle.gray, custom_id="next"))
+
+        msg = await ctx.send(embed=embed, view=view)
+
+        async def button_callback(interaction):
+            nonlocal page_num
+            if interaction.data["custom_id"] == "next" and page_num < len(pages) - 1:
+                page_num += 1
+            elif interaction.data["custom_id"] == "prev" and page_num > 0:
+                page_num -= 1
+            await update_embed(interaction, page_num)
+
+        for button in view.children:
+            button.callback = button_callback
 
 async def setup(bot):
     await bot.add_cog(Leaderboard(bot))
