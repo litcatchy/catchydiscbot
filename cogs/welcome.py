@@ -7,10 +7,13 @@ class Welcome(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
+        # Print a log for debugging to check if the event is firing
+        print(f"{member} has joined the server.")
+        
         # Define the embed
         embed = discord.Embed(
             title=f"Welcome {member.mention} to the {member.guild.name}",
-            description="__**Navigate to the following links**__",
+            description="__**Navigate to the following channel links**__",
             color=discord.Color.blue()
         )
 
@@ -22,10 +25,12 @@ class Welcome(commands.Cog):
         # Add the GIF media link at the end
         embed.set_image(url="https://cdn.discordapp.com/attachments/1339184630514974740/1349439380649148436/standard_10.gif?ex=67d31adb&is=67d1c95b&hm=16634f62e74ecb2b15bfba0094fa740a50618e801dfbd7b844f4ee82f68bc855&")
 
-        # Send the embed to the designated channel (replace with your desired channel ID)
-        channel = self.bot.get_channel(1260272793883508757)  # Replace with your desired channel ID
+        # Get the welcome channel (updated channel ID)
+        channel = self.bot.get_channel(1349365300117635207)  # Corrected welcome channel ID
         if channel:
             await channel.send(embed=embed)
+        else:
+            print("Couldn't find the channel to send the welcome message.")  # Error if channel not found
 
 # Setup function to add the cog to the bot
 async def setup(bot):
