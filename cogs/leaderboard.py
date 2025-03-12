@@ -1,150 +1,285 @@
 import discord
 from discord.ext import commands, tasks
-import asyncio
-from collections import defaultdict
-from database import Database
+from discord.ui import Button, View
+import sqlite3
 
-db = Database()
+# Owner ID to restrict certain commands
+OWNER_ID = 230022649844203522  # Replace with your actual owner ID
+
+# Connect to SQLite database
+def get_db_connection():
+    conn = sqlite3.connect('stats.db')
+    conn.row_factory = sqlite3.Row
+    return conn
 
 class Leaderboard(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.user_message_counts = defaultdict(list)  # Tracks messages for spam detection
-        self.vc_start_times = defaultdict(lambda: None)  # Tracks VC time
-        self.send_leaderboard.start()  # Start the automatic leaderboard task
 
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        if message.author.bot:
-            return  # Ignore bot messages
-
-        user_id = message.author.id
-        db.update_messages(user_id)  # Update message count in database
-
-        # Spam detection (5 messages in 10 seconds)
-        self.user_message_counts[user_id].append(message.created_at.timestamp())
-        self.user_message_counts[user_id] = [t for t in self.user_message_counts[user_id] if t > message.created_at.timestamp() - 10]
-
-        if len(self.user_message_counts[user_id]) >= 5:
-            embed = discord.Embed(
-                title="<:currencypaw:1346100210899619901> Spam Warning!",
-                description=f"{message.author.mention}, you are sending messages too fast!",
-                color=discord.Color.red()
-            )
-            warning = await message.channel.send(content=message.author.mention, embed=embed)  # Mention user
-            await asyncio.sleep(5)
-            await warning.delete()  # Auto-delete warning after 5 sec
-
-    @commands.Cog.listener()
-    async def on_voice_state_update(self, member, before, after):
-        user_id = member.id
-
-        # User joins VC
-        if before.channel is None and after.channel is not None:
-            self.vc_start_times[user_id] = asyncio.get_event_loop().time()
-
-        # User leaves VC
-        elif before.channel is not None and after.channel is None and self.vc_start_times[user_id] is not None:
-            elapsed_time = int(asyncio.get_event_loop().time() - self.vc_start_times.pop(user_id))
-            db.update_vc_time(user_id, elapsed_time)  # Update VC time in database
-
-    @commands.command(name="stats")
+    # Command to view stats for a specific user
+    @commands.command()
     async def stats(self, ctx, member: discord.Member = None):
-        """Show message and VC stats of a user."""
-        member = member or ctx.author
-        messages_sent, vc_time = db.get_user_stats(member.id)
+        """View a user's chat messages and VC time."""
+        if member is None:
+            member = ctx.author  # Default to the command user's stats
 
-        embed = discord.Embed(title=f"<:currencypaw:1346100210899619901> Stats for {member.display_name}", color=discord.Color.blue())
-        embed.add_field(name="<:currencypaw:1346100210899619901> Total Messages Sent", value=f"{messages_sent:,}", inline=False)
-        embed.add_field(name="<:currencypaw:1346100210899619901> Total VC Time", value=f"{vc_time // 3600}h {vc_time % 3600 // 60}m {vc_time % 60}s", inline=False)
-        embed.set_thumbnail(url=member.avatar.url)
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM leaderboard WHERE user_id = ?", (str(member.id),))
+        user_data = cursor.fetchone()
 
+        if user_data:
+            messages_sent = user_data['messages_sent']
+            vc_time_seconds = user_data['vc_time']
+            hours = vc_time_seconds // 3600
+            minutes = (vc_time_seconds % 3600) // 60
+            seconds = vc_time_seconds % 60
+            vc_time_formatted = f"{hours}h {minutes}m {seconds}s"
+            
+            embed = discord.Embed(title=f"{member.name}'s Stats", color=discord.Color.green())
+            embed.add_field(name="Messages Sent", value=f"{messages_sent} <:currencypaw:1346100210899619901>", inline=False)
+            embed.add_field(name="VC Time", value=f"{vc_time_formatted} <:currencypaw:1346100210899619901>", inline=False)
+        else:
+            embed = discord.Embed(title="No Data", description="No data found for this user.", color=discord.Color.red())
+
+        conn.close()
         await ctx.send(embed=embed)
 
-    @commands.command(name="topchat")
-    async def top_chat(self, ctx):
-        """Show top users by message count."""
-        top_users = db.get_top_chatters(50)
+    # Command to view the top 10 chatters
+    @commands.command()
+    async def topchat(self, ctx, page: int = 1):
+        """Shows the top 10 chatters with pagination."""
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
-        pages = []
-        if not top_users:
-            pages.append(discord.Embed(title="<:currencypaw:1346100210899619901> Top Chat Users", description="No data available yet.", color=discord.Color.gold()))
+        # Calculate the OFFSET based on the current page
+        limit = 10
+        offset = (page - 1) * limit
+
+        cursor.execute("SELECT * FROM leaderboard ORDER BY messages_sent DESC LIMIT ? OFFSET ?", (limit, offset))
+        top_chatters = cursor.fetchall()
+
+        if top_chatters:
+            embed = discord.Embed(title="Top Chatters", color=discord.Color.green())
+            for i, user in enumerate(top_chatters, start=(page - 1) * limit + 1):
+                messages_sent = user['messages_sent']
+                embed.add_field(name=f"{i}. {user['user_id']}", value=f"Messages: {messages_sent} <:currencypaw:1346100210899619901>", inline=False)
         else:
-            for i in range(0, len(top_users), 5):  # Paginate 5 users per page
-                embed = discord.Embed(title="<:currencypaw:1346100210899619901> Top Chat Users", color=discord.Color.gold())
-                for rank, (user_id, messages) in enumerate(top_users[i:i+5], start=i+1):
-                    user = self.bot.get_user(user_id) or f"User {user_id}"
-                    embed.add_field(name=f"<:currencypaw:1346100210899619901> #{rank} {user}", value=f"- {messages:,} messages", inline=False)
-                pages.append(embed)
+            embed = discord.Embed(title="No Data", description="No top chatters found.", color=discord.Color.red())
 
-        await self.paginate(ctx, pages)
+        conn.close()
 
-    @commands.command(name="topvc")
-    async def top_vc(self, ctx):
-        """Show top users by VC time."""
-        top_users = db.get_top_vc(50)
+        # Create pagination buttons
+        buttons = View()
+        if page > 1:
+            buttons.add_item(Button(label="Previous", style=discord.ButtonStyle.primary, custom_id="previous"))
+        buttons.add_item(Button(label="Next", style=discord.ButtonStyle.primary, custom_id="next"))
 
-        pages = []
-        if not top_users:
-            pages.append(discord.Embed(title="<:currencypaw:1346100210899619901> Top VC Users", description="No data available yet.", color=discord.Color.purple()))
+        # Send embed and buttons
+        message = await ctx.send(embed=embed, view=buttons)
+
+        # Handle button interactions
+        def check(interaction):
+            return interaction.message.id == message.id and interaction.user == ctx.author
+
+        try:
+            interaction = await self.bot.wait_for("interaction", timeout=60.0, check=check)
+
+            if interaction.data["custom_id"] == "next":
+                await message.edit(embed=await self.paginate_topchat(page + 1), view=buttons)
+            elif interaction.data["custom_id"] == "previous" and page > 1:
+                await message.edit(embed=await self.paginate_topchat(page - 1), view=buttons)
+
+            await interaction.response.defer()
+
+        except Exception:
+            pass
+
+    async def paginate_topchat(self, page):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        limit = 10
+        offset = (page - 1) * limit
+
+        cursor.execute("SELECT * FROM leaderboard ORDER BY messages_sent DESC LIMIT ? OFFSET ?", (limit, offset))
+        top_chatters = cursor.fetchall()
+
+        embed = discord.Embed(title="Top Chatters", color=discord.Color.green())
+        for i, user in enumerate(top_chatters, start=(page - 1) * limit + 1):
+            messages_sent = user['messages_sent']
+            embed.add_field(name=f"{i}. {user['user_id']}", value=f"Messages: {messages_sent} <:currencypaw:1346100210899619901>", inline=False)
+
+        conn.close()
+        return embed
+
+    # Command to view the top 10 VC users
+    @commands.command()
+    async def topvc(self, ctx, page: int = 1):
+        """Shows the top 10 VC users with pagination."""
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Calculate the OFFSET based on the current page
+        limit = 10
+        offset = (page - 1) * limit
+
+        cursor.execute("SELECT * FROM leaderboard ORDER BY vc_time DESC LIMIT ? OFFSET ?", (limit, offset))
+        top_vc = cursor.fetchall()
+
+        if top_vc:
+            embed = discord.Embed(title="Top VC Users", color=discord.Color.green())
+            for i, user in enumerate(top_vc, start=(page - 1) * limit + 1):
+                vc_time_seconds = user['vc_time']
+                hours = vc_time_seconds // 3600
+                minutes = (vc_time_seconds % 3600) // 60
+                seconds = vc_time_seconds % 60
+                vc_time_formatted = f"{hours}h {minutes}m {seconds}s"
+
+                embed.add_field(name=f"{i}. {user['user_id']}", value=f"VC Time: {vc_time_formatted} <:currencypaw:1346100210899619901>", inline=False)
         else:
-            for i in range(0, len(top_users), 5):  # Paginate 5 users per page
-                embed = discord.Embed(title="<:currencypaw:1346100210899619901> Top VC Users", color=discord.Color.purple())
-                for rank, (user_id, vc_time) in enumerate(top_users[i:i+5], start=i+1):
-                    user = self.bot.get_user(user_id) or f"User {user_id}"
-                    embed.add_field(name=f"- #{rank} {user}", value=f"<:currencypaw:1346100210899619901> {vc_time // 3600}h {vc_time % 3600 // 60}m {vc_time % 60}s", inline=False)
-                pages.append(embed)
+            embed = discord.Embed(title="No Data", description="No top VC users found.", color=discord.Color.red())
 
-        await self.paginate(ctx, pages)
+        conn.close()
 
-    async def paginate(self, ctx, pages):
-        """Handles pagination for embeds."""
-        if not pages:
-            return
+        # Create pagination buttons
+        buttons = View()
+        if page > 1:
+            buttons.add_item(Button(label="Previous", style=discord.ButtonStyle.primary, custom_id="previous"))
+        buttons.add_item(Button(label="Next", style=discord.ButtonStyle.primary, custom_id="next"))
 
-        current_page = 0
-        message = await ctx.send(embed=pages[current_page])
+        # Send embed and buttons
+        message = await ctx.send(embed=embed, view=buttons)
 
-        if len(pages) == 1:
-            return  # No need for pagination
+        # Handle button interactions
+        def check(interaction):
+            return interaction.message.id == message.id and interaction.user == ctx.author
 
-        await message.add_reaction("◀")
-        await message.add_reaction("▶")
+        try:
+            interaction = await self.bot.wait_for("interaction", timeout=60.0, check=check)
 
-        def check(reaction, user):
-            return user == ctx.author and reaction.message.id == message.id and reaction.emoji in ["◀", "▶"]
+            if interaction.data["custom_id"] == "next":
+                await message.edit(embed=await self.paginate_topvc(page + 1), view=buttons)
+            elif interaction.data["custom_id"] == "previous" and page > 1:
+                await message.edit(embed=await self.paginate_topvc(page - 1), view=buttons)
 
-        while True:
-            try:
-                reaction, user = await self.bot.wait_for("reaction_add", timeout=60, check=check)
-                await message.remove_reaction(reaction.emoji, user)
+            await interaction.response.defer()
 
-                if reaction.emoji == "▶" and current_page < len(pages) - 1:
-                    current_page += 1
-                    await message.edit(embed=pages[current_page])
-                elif reaction.emoji == "◀" and current_page > 0:
-                    current_page -= 1
-                    await message.edit(embed=pages[current_page])
-            except asyncio.TimeoutError:
-                await message.clear_reactions()
-                break
+        except Exception:
+            pass
 
-    @tasks.loop(minutes=5)
-    async def send_leaderboard(self):
-        channel = self.bot.get_channel(1349397400212603033)  # Your channel ID here
-        if channel:
-            top_users = db.get_top_chatters(50)
-            embed_message = discord.Embed(title="Leaderboard", color=discord.Color.green())
+    async def paginate_topvc(self, page):
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
-            for rank, (user_id, messages) in enumerate(top_users, start=1):
-                user = self.bot.get_user(user_id) or f"User {user_id}"
-                embed_message.add_field(name=f"#{rank} {user}", value=f"- {messages:,} messages", inline=False)
+        limit = 10
+        offset = (page - 1) * limit
 
-            await channel.send(embed=embed_message)
+        cursor.execute("SELECT * FROM leaderboard ORDER BY vc_time DESC LIMIT ? OFFSET ?", (limit, offset))
+        top_vc = cursor.fetchall()
 
-    @send_leaderboard.before_loop
-    async def before_send_leaderboard(self):
-        await self.bot.wait_until_ready()  # Ensure the bot is ready before starting the task
+        embed = discord.Embed(title="Top VC Users", color=discord.Color.green())
+        for i, user in enumerate(top_vc, start=(page - 1) * limit + 1):
+            vc_time_seconds = user['vc_time']
+            hours = vc_time_seconds // 3600
+            minutes = (vc_time_seconds % 3600) // 60
+            seconds = vc_time_seconds % 60
+            vc_time_formatted = f"{hours}h {minutes}m {seconds}s"
 
-async def setup(bot):
-    await bot.add_cog(Leaderboard(bot))
+            embed.add_field(name=f"{i}. {user['user_id']}", value=f"VC Time: {vc_time_formatted} <:currencypaw:1346100210899619901>", inline=False)
+
+        conn.close()
+        return embed
+
+    # Command to update a user's stats (chat messages and VC time)
+    @commands.command()
+    @commands.is_owner()
+    async def updatestats(self, ctx, member: discord.Member, messages_sent: int, vc_time: int):
+        """Manually update a user's stats."""
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("INSERT OR REPLACE INTO leaderboard (user_id, messages_sent, vc_time) VALUES (?, ?, ?)", 
+                       (str(member.id), messages_sent, vc_time))
+        conn.commit()
+        conn.close()
+
+        embed = discord.Embed(title="Stats Updated", description=f"Updated stats for {member.name}.", color=discord.Color.green())
+        await ctx.send(embed=embed)
+
+    # Command to update the leaderboard stats every 5 minutes
+    @commands.command()
+    @commands.is_owner()
+    async def updatelead5m(self, ctx):
+        """Updates the leaderboard every 5 minutes."""
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM leaderboard")
+        all_data = cursor.fetchall()
+
+        for data in all_data:
+            user_id = data['user_id']
+            messages_sent = data['messages_sent']
+            vc_time = data['vc_time']
+            cursor.execute("UPDATE leaderboard SET messages_sent = ?, vc_time = ? WHERE user_id = ?", 
+                           (messages_sent, vc_time, user_id))
+        conn.commit()
+        conn.close()
+
+        embed = discord.Embed(title="Leaderboard Updated", description="Leaderboard stats updated successfully.", color=discord.Color.green())
+        await ctx.send(embed=embed)
+
+    # Command to update top VC stats
+    @commands.command()
+    @commands.is_owner()
+    async def updatetopvc(self, ctx):
+        """Update top VC stats."""
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM leaderboard ORDER BY vc_time DESC")
+        top_vc = cursor.fetchall()
+
+        for i, data in enumerate(top_vc):
+            user_id = data['user_id']
+            vc_time = data['vc_time']
+            cursor.execute("UPDATE leaderboard SET vc_time = ? WHERE user_id = ?", 
+                           (vc_time, user_id))
+        conn.commit()
+        conn.close()
+
+        embed = discord.Embed(title="Top VC Updated", description="Top VC stats updated successfully.", color=discord.Color.green())
+        await ctx.send(embed=embed)
+
+    # Command to update top chat stats
+    @commands.command()
+    @commands.is_owner()
+    async def updatetopchat(self, ctx):
+        """Update top chat stats."""
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM leaderboard ORDER BY messages_sent DESC")
+        top_chatters = cursor.fetchall()
+
+        for i, data in enumerate(top_chatters):
+            user_id = data['user_id']
+            messages_sent = data['messages_sent']
+            cursor.execute("UPDATE leaderboard SET messages_sent = ? WHERE user_id = ?", 
+                           (messages_sent, user_id))
+        conn.commit()
+        conn.close()
+
+        embed = discord.Embed(title="Top Chat Updated", description="Top chat stats updated successfully.", color=discord.Color.green())
+        await ctx.send(embed=embed)
+
+    # Updates both top chat and top VC at once
+    @commands.command()
+    @commands.is_owner()
+    async def updatetopall(self, ctx):
+        """Update both top VC and top chat stats."""
+        await self.updatetopvc(ctx)
+        await self.updatetopchat(ctx)
+        embed = discord.Embed(title="Top Stats Updated", description="Both top VC and top chat stats updated successfully.", color=discord.Color.green())
+        await ctx.send(embed=embed)
+
+def setup(bot):
+    bot.add_cog(Leaderboard(bot))
+    
