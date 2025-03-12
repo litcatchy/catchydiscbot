@@ -21,21 +21,33 @@ class Database:
         self.conn.commit()
 
     def update_messages(self, user_id):
-        """Increases message count (only counts once per 4 seconds)."""
+        """Ensures user exists and updates message count."""
         self.cursor.execute("""
-            INSERT INTO user_stats (user_id, messages_sent)
-            VALUES (?, 1)
-            ON CONFLICT(user_id) DO UPDATE SET messages_sent = messages_sent + 1
+            INSERT OR IGNORE INTO user_stats (user_id, messages_sent, vc_time) 
+            VALUES (?, 0, 0)
+        """, (user_id,))  # Ensures the user exists
+
+        self.cursor.execute("""
+            UPDATE user_stats 
+            SET messages_sent = messages_sent + 1 
+            WHERE user_id = ?
         """, (user_id,))
+        
         self.conn.commit()
 
     def update_vc_time(self, user_id, seconds):
-        """Increases VC time (in seconds)."""
+        """Ensures user exists and updates VC time."""
         self.cursor.execute("""
-            INSERT INTO user_stats (user_id, vc_time)
-            VALUES (?, ?)
-            ON CONFLICT(user_id) DO UPDATE SET vc_time = vc_time + ?
-        """, (user_id, seconds, seconds))
+            INSERT OR IGNORE INTO user_stats (user_id, messages_sent, vc_time) 
+            VALUES (?, 0, 0)
+        """, (user_id,))  # Ensures the user exists
+
+        self.cursor.execute("""
+            UPDATE user_stats 
+            SET vc_time = vc_time + ? 
+            WHERE user_id = ?
+        """, (seconds, user_id))
+        
         self.conn.commit()
 
     def get_user_stats(self, user_id):
@@ -46,7 +58,8 @@ class Database:
     def get_vc_time(self, user_id):
         """Gets only VC time for a user."""
         self.cursor.execute("SELECT vc_time FROM user_stats WHERE user_id = ?", (user_id,))
-        return self.cursor.fetchone()[0] if self.cursor.fetchone() else 0  # Default to 0
+        result = self.cursor.fetchone()
+        return result[0] if result else 0  # Default to 0
 
     def get_top_chatters(self, limit=10):
         """Gets top users by message count."""
