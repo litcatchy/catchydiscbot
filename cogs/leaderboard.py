@@ -280,6 +280,6 @@ class Leaderboard(commands.Cog):
         embed = discord.Embed(title="Top Stats Updated", description="Both top VC and top chat stats updated successfully.", color=discord.Color.green())
         await ctx.send(embed=embed)
 
-def setup(bot):
-    bot.add_cog(Leaderboard(bot))
+async def setup(bot):
+    await bot.add_cog(Leaderboard(bot))
     
