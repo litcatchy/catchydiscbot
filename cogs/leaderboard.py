@@ -91,7 +91,7 @@ class Leaderboard(commands.Cog):
                 embed = discord.Embed(title="<:currencypaw:1346100210899619901> Top VC Users", color=discord.Color.purple())
                 for rank, (user_id, vc_time) in enumerate(top_users[i:i+5], start=i+1):
                     user = self.bot.get_user(user_id) or f"User {user_id}"
-                    embed.add_field(name=f"<:currencypaw:1346100210899619901> #{rank} {user}", value=f"<:currencypaw:1346100210899619901> {vc_time // 3600}h {vc_time % 3600 // 60}m {vc_time % 60}s", inline=False)
+                    embed.add_field(name=f"- #{rank} {user}", value=f"<:currencypaw:1346100210899619901> {vc_time // 3600}h {vc_time % 3600 // 60}m {vc_time % 60}s", inline=False)
                 pages.append(embed)
 
         await self.paginate(ctx, pages)
