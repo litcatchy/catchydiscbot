@@ -74,6 +74,21 @@ class Leaderboard(commands.Cog):
         )
         await ctx.send(embed=embed)
 
+    @commands.command()
+    async def topchat(self, ctx):
+        """Leaderboard for top chatters"""
+        top_chatters = self.db.get_top_chatters(50)  # Get up to 50 users for pagination
+        paginator = LeaderboardPaginator(top_chatters, "Top Chatters")
+        await paginator.send_initial_message(ctx)
+
+    @commands.command()
+    async def topvc(self, ctx):
+        """Leaderboard for top VC users"""
+        top_vc_users = self.db.get_top_vc(50)  # Get up to 50 users for pagination
+        paginator = LeaderboardPaginator(top_vc_users, "Top VC Users")
+        await paginator.send_initial_message(ctx)
+
+
 class LeaderboardPaginator(discord.ui.View):
     def __init__(self, data, title, page_size=10):
         super().__init__()
@@ -128,19 +143,6 @@ class LeaderboardPaginator(discord.ui.View):
     async def on_error(self, error, item, interaction):
         await interaction.response.send_message("An error occurred.", ephemeral=True)
 
-    @commands.command()
-    async def topchat(self, ctx):
-        """Leaderboard for top chatters"""
-        top_chatters = self.db.get_top_chatters(50)  # Get up to 50 users for pagination
-        paginator = LeaderboardPaginator(top_chatters, "Top Chatters")
-        await paginator.send_initial_message(ctx)
-
-    @commands.command()
-    async def topvc(self, ctx):
-        """Leaderboard for top VC users"""
-        top_vc_users = self.db.get_top_vc(50)  # Get up to 50 users for pagination
-        paginator = LeaderboardPaginator(top_vc_users, "Top VC Users")
-        await paginator.send_initial_message(ctx)
 
 async def setup(bot):
     await bot.add_cog(Leaderboard(bot))
