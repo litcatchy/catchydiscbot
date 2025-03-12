@@ -26,8 +26,8 @@ class Leaderboard(commands.Cog):
             title=f"<:currencypaw:1346100210899619901> {member.display_name}'s Stats",
             color=discord.Color.blue()
         )
-        embed.add_field(name="💬 Messages Sent", value=f"`{messages}`", inline=True)
-        embed.add_field(name="🎙️ VC Time", value=f"`{vc_formatted}`", inline=True)
+        embed.add_field(name="<:currencypaw:1346100210899619901> Messages Sent", value=f"`{messages}`", inline=True)
+        embed.add_field(name="<:currencypaw:1346100210899619901> VC Time", value=f"`{vc_formatted}`", inline=True)
         embed.set_thumbnail(url=member.avatar.url if member.avatar else member.default_avatar.url)
         embed.set_footer(text=f"Requested by {ctx.author.display_name}", icon_url=ctx.author.avatar.url)
 
