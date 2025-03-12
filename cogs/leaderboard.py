@@ -63,7 +63,7 @@ class Leaderboard(commands.Cog):
     @commands.command(name="topchat")
     async def top_chat(self, ctx):
         """Show top users by message count."""
-        top_users = db.get_top_chatters(10)
+        top_users = db.get_top_chatters(50)
 
         pages = []
         if not top_users:
@@ -81,7 +81,7 @@ class Leaderboard(commands.Cog):
     @commands.command(name="topvc")
     async def top_vc(self, ctx):
         """Show top users by VC time."""
-        top_users = db.get_top_vc(10)
+        top_users = db.get_top_vc(50)
 
         pages = []
         if not top_users:
