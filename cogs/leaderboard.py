@@ -73,7 +73,7 @@ class Leaderboard(commands.Cog):
                 embed = discord.Embed(title="<:currencypaw:1346100210899619901> Top Chat Users", color=discord.Color.gold())
                 for rank, (user_id, messages) in enumerate(top_users[i:i+5], start=i+1):
                     user = self.bot.get_user(user_id) or f"User {user_id}"
-                    embed.add_field(name=f"<:currencypaw:1346100210899619901> #{rank} {user}", value=f"<:currencypaw:1346100210899619901> {messages:,} messages", inline=False)
+                    embed.add_field(name=f"<:currencypaw:1346100210899619901> #{rank} {user}", value=f"- {messages:,} messages", inline=False)
                 pages.append(embed)
 
         await self.paginate(ctx, pages)
