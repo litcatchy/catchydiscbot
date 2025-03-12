@@ -11,7 +11,6 @@ class Leaderboard(commands.Cog):
         self.db = Database()
         self.message_counts = defaultdict(list)  # Spam tracking
         self.vc_times = defaultdict(int)  # Voice chat tracking
-        self.last_message_time = {}  # Track last message time per user
         self.track_vc_time.start()  # Starts tracking VC time
 
     def cog_unload(self):
@@ -21,13 +20,13 @@ class Leaderboard(commands.Cog):
     async def on_message(self, message):
         if message.author.bot:
             return
-
+        
         user_id = message.author.id
         if message.guild and message.guild.owner_id == user_id:  # Ignore server owner
             return
-
+        
         # Spam detection
-        now = asyncio.get_event_loop().time()
+        now = time.time()
         self.message_counts[user_id].append(now)
         self.message_counts[user_id] = [t for t in self.message_counts[user_id] if now - t < 10]
 
@@ -41,10 +40,12 @@ class Leaderboard(commands.Cog):
             await warning_msg.delete()
 
         # Update messages count (counts once per 4 sec)
-        last_message_time = self.last_message_time.get(user_id, 0)
-        if now - last_message_time >= 4:
+        if not hasattr(message.author, "last_message_time"):
+            message.author.last_message_time = 0
+
+        if now - message.author.last_message_time >= 4:
             self.db.update_messages(user_id)
-            self.last_message_time[user_id] = now  # Update last message time
+            message.author.last_message_time = now  # Update last message time
 
     @tasks.loop(seconds=1)
     async def track_vc_time(self):
@@ -73,87 +74,73 @@ class Leaderboard(commands.Cog):
         )
         await ctx.send(embed=embed)
 
+class LeaderboardPaginator(discord.ui.View):
+    def __init__(self, data, title, page_size=10):
+        super().__init__()
+        self.data = data
+        self.title = title
+        self.page_size = page_size
+        self.current_page = 0
+
+    async def send_initial_message(self, ctx):
+        self.message = await ctx.send(embed=self.get_page(), view=self)
+
+    def get_page(self):
+        start = self.current_page * self.page_size
+        end = start + self.page_size
+        page_data = self.data[start:end]
+
+        if not page_data:
+            description = "<:currencypaw:1346100210899619901> No data available."
+        else:
+            description = "\n".join(
+                f"**{idx+1+start}. <@{user_id}> - [{value}]**"
+                for idx, (user_id, value) in enumerate(page_data)
+            )
+
+        embed = discord.Embed(
+            title=f"<:currencypaw:1346100210899619901> {self.title}",
+            description=description,
+            color=discord.Color.gold()
+        )
+        return embed
+
+    @discord.ui.button(label="Previous", style=discord.ButtonStyle.blurple)
+    async def previous_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if self.current_page > 0:
+            self.current_page -= 1
+            await interaction.response.edit_message(embed=self.get_page(), view=self)
+
+    @discord.ui.button(label="Next", style=discord.ButtonStyle.blurple)
+    async def next_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if (self.current_page + 1) * self.page_size < len(self.data):
+            self.current_page += 1
+            await interaction.response.edit_message(embed=self.get_page(), view=self)
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        return True  # Allows anyone to interact with the buttons
+
+    async def on_timeout(self):
+        for item in self.children:
+            item.disabled = True
+        await self.message.edit(view=self)
+
+    async def on_error(self, error, item, interaction):
+        await interaction.response.send_message("An error occurred.", ephemeral=True)
+
     @commands.command()
     async def topchat(self, ctx):
         """Leaderboard for top chatters"""
-        top_chatters = self.db.get_top_chatters(50)  # Fetch up to 50 users
-        if not top_chatters:
-            return await ctx.send(embed=discord.Embed(description="<:currencypaw:1346100210899619901> No data available.", color=discord.Color.red()))
-
-        pages = [top_chatters[i:i+10] for i in range(0, len(top_chatters), 10)]  # Paginate by 10
-        page = 0
-
-        async def update_message():
-            description = "\n".join(
-                f"**{idx+1}. <@{user_id}> - [{messages_sent}]**"
-                for idx, (user_id, messages_sent) in enumerate(pages[page])
-            ) if pages else "<:currencypaw:1346100210899619901> No data available."
-
-            embed = discord.Embed(title="<:currencypaw:1346100210899619901> Top Chatters", description=description, color=discord.Color.gold())
-            return embed
-
-        message = await ctx.send(embed=await update_message())
-
-        async def button_callback(interaction: discord.Interaction, action: str):
-            nonlocal page
-            if action == "prev" and page > 0:
-                page -= 1
-            elif action == "next" and page < len(pages) - 1:
-                page += 1
-            await message.edit(embed=await update_message())
-
-        prev_button = discord.ui.Button(label="Previous", style=discord.ButtonStyle.gray)
-        next_button = discord.ui.Button(label="Next", style=discord.ButtonStyle.gray)
-
-        prev_button.callback = lambda i: button_callback(i, "prev")
-        next_button.callback = lambda i: button_callback(i, "next")
-
-        view = discord.ui.View()
-        view.add_item(prev_button)
-        view.add_item(next_button)
-
-        await message.edit(view=view)
+        top_chatters = self.db.get_top_chatters(50)  # Get up to 50 users for pagination
+        paginator = LeaderboardPaginator(top_chatters, "Top Chatters")
+        await paginator.send_initial_message(ctx)
 
     @commands.command()
     async def topvc(self, ctx):
         """Leaderboard for top VC users"""
-        top_vc_users = self.db.get_top_vc(50)  # Fetch up to 50 users
-        if not top_vc_users:
-            return await ctx.send(embed=discord.Embed(description="<:currencypaw:1346100210899619901> No data available.", color=discord.Color.red()))
-
-        pages = [top_vc_users[i:i+10] for i in range(0, len(top_vc_users), 10)]  # Paginate by 10
-        page = 0
-
-        async def update_message():
-            description = "\n".join(
-                f"**{idx+1}. <@{user_id}> - [{vc_time // 3600} Hours {(vc_time % 3600) // 60} Minutes {vc_time % 60} Seconds]**"
-                for idx, (user_id, vc_time) in enumerate(pages[page])
-            ) if pages else "<:currencypaw:1346100210899619901> No data available."
-
-            embed = discord.Embed(title="<:currencypaw:1346100210899619901> Top Voice Users", description=description, color=discord.Color.gold())
-            return embed
-
-        message = await ctx.send(embed=await update_message())
-
-        async def button_callback(interaction: discord.Interaction, action: str):
-            nonlocal page
-            if action == "prev" and page > 0:
-                page -= 1
-            elif action == "next" and page < len(pages) - 1:
-                page += 1
-            await message.edit(embed=await update_message())
-
-        prev_button = discord.ui.Button(label="Previous", style=discord.ButtonStyle.gray)
-        next_button = discord.ui.Button(label="Next", style=discord.ButtonStyle.gray)
-
-        prev_button.callback = lambda i: button_callback(i, "prev")
-        next_button.callback = lambda i: button_callback(i, "next")
-
-        view = discord.ui.View()
-        view.add_item(prev_button)
-        view.add_item(next_button)
-
-        await message.edit(view=view)
+        top_vc_users = self.db.get_top_vc(50)  # Get up to 50 users for pagination
+        paginator = LeaderboardPaginator(top_vc_users, "Top VC Users")
+        await paginator.send_initial_message(ctx)
 
 async def setup(bot):
     await bot.add_cog(Leaderboard(bot))
