@@ -1,94 +1,113 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks, menus
 import asyncio
-from collections import defaultdict
 from database import Database
 
 db = Database()
+message_counts = {}
 
 class Leaderboard(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.user_message_counts = defaultdict(list)  # Tracks messages for spam detection
-        self.vc_start_times = defaultdict(lambda: None)  # Tracks VC time
+        self.clear_message_counts.start()
+
+    def cog_unload(self):
+        self.clear_message_counts.cancel()
+
+    @tasks.loop(seconds=10)
+    async def clear_message_counts(self):
+        """Resets spam detection every 10 seconds."""
+        global message_counts
+        message_counts.clear()
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if message.author.bot:
-            return  # Ignore bot messages
+        """Tracks message count and detects spam."""
+        if message.author.bot or not message.guild:
+            return
 
         user_id = message.author.id
-        db.update_messages(user_id)  # Update message count in database
+        db.update_messages(user_id)
 
-        # Spam detection (5 messages in 10 seconds)
-        self.user_message_counts[user_id].append(message.created_at.timestamp())
-        self.user_message_counts[user_id] = [t for t in self.user_message_counts[user_id] if t > message.created_at.timestamp() - 10]
+        if user_id not in message_counts:
+            message_counts[user_id] = 0
+        message_counts[user_id] += 1
 
-        if len(self.user_message_counts[user_id]) >= 5:
+        if message_counts[user_id] > 5:
             embed = discord.Embed(
-                title="<:currencypaw:1346100210899619901> Spam Warning!",
-                description=f"{message.author.mention}, you are sending messages too fast!",
+                description=f"<:currencypaw:1346100210899619901> **{message.author.mention}, stop spamming!**",
                 color=discord.Color.red()
             )
-            warning = await message.channel.send(content=message.author.mention, embed=embed)  # Mention user
+            warning = await message.channel.send(embed=embed)
             await asyncio.sleep(5)
-            await warning.delete()  # Auto-delete warning after 5 sec
+            await warning.delete()
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
-        user_id = member.id
-
-        # User joins VC
-        if before.channel is None and after.channel is not None:
-            self.vc_start_times[user_id] = asyncio.get_event_loop().time()
-
-        # User leaves VC
-        elif before.channel is not None and after.channel is None and self.vc_start_times[user_id] is not None:
-            elapsed_time = int(asyncio.get_event_loop().time() - self.vc_start_times.pop(user_id))
-            db.update_vc_time(user_id, elapsed_time)  # Update VC time in database
+        """Tracks voice chat time."""
+        if before.channel is None and after.channel:
+            self.bot.vc_timers[member.id] = asyncio.get_event_loop().time()
+        elif before.channel and after.channel is None:
+            if member.id in self.bot.vc_timers:
+                joined_at = self.bot.vc_timers.pop(member.id)
+                total_time = int(asyncio.get_event_loop().time() - joined_at)
+                db.update_vc_time(member.id, total_time)
 
     @commands.command(name="stats")
     async def stats(self, ctx, member: discord.Member = None):
-        """Show message and VC stats of a user."""
-        member = member or ctx.author
+        """Shows user message and VC stats."""
+        member = member or ctx.author  
         messages_sent, vc_time = db.get_user_stats(member.id)
 
         embed = discord.Embed(title=f"<:currencypaw:1346100210899619901> Stats for {member.display_name}", color=discord.Color.blue())
-        embed.add_field(name="<:currencypaw:1346100210899619901> Total Messages Sent", value=f"{messages_sent:,}", inline=False)
-        embed.add_field(name="<:currencypaw:1346100210899619901> Total VC Time", value=f"{vc_time // 3600}h {vc_time % 3600 // 60}m {vc_time % 60}s", inline=False)
+        embed.add_field(name="Total Messages Sent", value=f"{messages_sent:,}", inline=False)
+        embed.add_field(name="Total VC Time", value=f"{vc_time // 3600}h {vc_time % 3600 // 60}m {vc_time % 60}s", inline=False)
         embed.set_thumbnail(url=member.avatar.url)
 
         await ctx.send(embed=embed)
 
     @commands.command(name="topchat")
-    async def top_chat(self, ctx):
-        """Show top users by message count."""
-        top_users = db.get_top_chatters(10)
-        embed = discord.Embed(title="<:currencypaw:1346100210899619901> Top Chat Users", color=discord.Color.gold())
+    async def topchat(self, ctx):
+        """Displays the top message senders."""
+        top_chatters = db.get_top_chatters(limit=50)
+        pages = [top_chatters[i:i+10] for i in range(0, len(top_chatters), 10)] or [[]]  
 
-        if not top_users:
-            embed.description = "No data available yet."
-        else:
-            for rank, (user_id, messages) in enumerate(top_users, start=1):
-                user = self.bot.get_user(user_id) or f"User {user_id}"
-                embed.add_field(name=f"<:currencypaw:1346100210899619901> #{rank} {user}", value=f"<:currencypaw:1346100210899619901> {messages:,} messages", inline=False)
+        class ChatMenu(menus.ListPageSource):
+            async def format_page(self, menu, entries):
+                embed = discord.Embed(title="<:currencypaw:1346100210899619901> Top Chat Users", color=discord.Color.blue())
+                if not entries:
+                    embed.description = "No data available."
+                else:
+                    embed.description = "\n".join(
+                        f"**{i+1}. <@{user_id}>** **[{messages:,} messages]**"
+                        for i, (user_id, messages) in enumerate(entries, start=menu.current_page * 10 + 1)
+                    )
+                return embed
 
-        await ctx.send(embed=embed)
+        paginator = menus.MenuPages(source=ChatMenu(pages, per_page=1), clear_reactions_after=True)
+        await paginator.start(ctx)
 
     @commands.command(name="topvc")
-    async def top_vc(self, ctx):
-        """Show top users by VC time."""
-        top_users = db.get_top_vc(10)
-        embed = discord.Embed(title="<:currencypaw:1346100210899619901> Top VC Users", color=discord.Color.purple())
+    async def topvc(self, ctx):
+        """Displays the top VC users."""
+        top_vc_users = db.get_top_vc(limit=50)
+        pages = [top_vc_users[i:i+10] for i in range(0, len(top_vc_users), 10)] or [[]]  
 
-        if not top_users:
-            embed.description = "No data available yet."
-        else:
-            for rank, (user_id, vc_time) in enumerate(top_users, start=1):
-                user = self.bot.get_user(user_id) or f"User {user_id}"
-                embed.add_field(name=f"<:currencypaw:1346100210899619901> #{rank} {user}", value=f"<:currencypaw:1346100210899619901> {vc_time // 3600}h {vc_time % 3600 // 60}m {vc_time % 60}s", inline=False)
+        class VCMenu(menus.ListPageSource):
+            async def format_page(self, menu, entries):
+                embed = discord.Embed(title="<:currencypaw:1346100210899619901> Top VC Users", color=discord.Color.blue())
+                if not entries:
+                    embed.description = "No data available."
+                else:
+                    embed.description = "\n".join(
+                        f"**{i+1}. <@{user_id}>** **[{vc_time // 3600}h {vc_time % 3600 // 60}m {vc_time % 60}s]**"
+                        for i, (user_id, vc_time) in enumerate(entries, start=menu.current_page * 10 + 1)
+                    )
+                return embed
 
-        await ctx.send(embed=embed)
+        paginator = menus.MenuPages(source=VCMenu(pages, per_page=1), clear_reactions_after=True)
+        await paginator.start(ctx)
 
 async def setup(bot):
+    bot.vc_timers = {}  # Track VC join times
     await bot.add_cog(Leaderboard(bot))
