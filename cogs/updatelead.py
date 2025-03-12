@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+import asyncio
 from database import Database
 
 db = Database()
@@ -8,88 +9,121 @@ class UpdateLeaderboard(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    async def send_embed(self, ctx, title, description, color):
-        """Helper method to send an embed message."""
-        embed = discord.Embed(title=title, description=description, color=color)
+    @commands.command(name="vcm")
+    async def update_vc_leaderboard(self, ctx, *, data: str):
+        """Manually update VC leaderboard stats."""
+        if ctx.author.id != 230022649844203522:  # Check if the user is the server owner
+            embed = discord.Embed(
+                title="<:currencypaw:1346100210899619901> Error",
+                description="You do not have permission to use this command.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        lines = data.splitlines()
+        for line in lines:
+            try:
+                parts = line.split()
+                user_id = int(parts[0])
+                vc_time = int(parts[1])
+
+                # Update the VC time
+                db.update_vc_time(user_id, vc_time)
+
+            except Exception as e:
+                embed = discord.Embed(
+                    title="<:currencypaw:1346100210899619901> Error",
+                    description=f"Error parsing data for line: {line}\nError: {str(e)}",
+                    color=discord.Color.red()
+                )
+                await ctx.send(embed=embed)
+                continue
+
+        embed = discord.Embed(
+            title="<:currencypaw:1346100210899619901> VC Leaderboard Stats Updated",
+            description="The VC leaderboard stats have been successfully updated.",
+            color=discord.Color.green()
+        )
         await ctx.send(embed=embed)
 
-    @commands.command(name="vcm")
-    async def modify_vc_leaderboard(self, ctx, *, data):
-        """Modify VC leaderboard stats for a user (Only server owner)."""
-        if ctx.author.id != 230022649844203522:
-            await self.send_embed(ctx, "Permission Denied", "You do not have permission to use this command.", discord.Color.red())
-            return
-        
-        try:
-            # Split the data into individual lines, then process each line
-            lines = data.split("\n")
-            for line in lines:
-                parts = line.split()
-                
-                # Ensure there's at least one value for messages_sent and set vc_time to 0 if missing
-                user_id = int(parts[0])
-                messages_sent = int(parts[1])
-                vc_time = int(parts[2]) if len(parts) > 2 else 0  # Default to 0 if VC time is missing
-
-                # Update the VC stats for the user
-                db.update_vc_time(user_id, vc_time)
-                db.update_messages(user_id, messages_sent)
-            
-            await self.send_embed(ctx, "Leaderboard Update", "VC Leaderboard stats updated successfully.", discord.Color.green())
-        except Exception as e:
-            await self.send_embed(ctx, "Error", f"Error parsing data: {e}", discord.Color.red())
-
     @commands.command(name="chatm")
-    async def modify_chat_leaderboard(self, ctx, *, data):
-        """Modify chat leaderboard stats for a user (Only server owner)."""
-        if ctx.author.id != 230022649844203522:
-            await self.send_embed(ctx, "Permission Denied", "You do not have permission to use this command.", discord.Color.red())
+    async def update_chat_leaderboard(self, ctx, *, data: str):
+        """Manually update chat leaderboard stats."""
+        if ctx.author.id != 230022649844203522:  # Check if the user is the server owner
+            embed = discord.Embed(
+                title="<:currencypaw:1346100210899619901> Error",
+                description="You do not have permission to use this command.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
             return
-        
-        try:
-            # Split the data into individual lines, then process each line
-            lines = data.split("\n")
-            for line in lines:
+
+        lines = data.splitlines()
+        for line in lines:
+            try:
                 parts = line.split()
-                
-                # Ensure there's at least one value for messages_sent and set vc_time to 0 if missing
                 user_id = int(parts[0])
                 messages_sent = int(parts[1])
-                vc_time = int(parts[2]) if len(parts) > 2 else 0  # Default to 0 if VC time is missing
 
-                # Update the message stats for the user
+                # Update the message count
                 db.update_messages(user_id, messages_sent)
-                db.update_vc_time(user_id, vc_time)
-            
-            await self.send_embed(ctx, "Leaderboard Update", "Chat Leaderboard stats updated successfully.", discord.Color.green())
-        except Exception as e:
-            await self.send_embed(ctx, "Error", f"Error parsing data: {e}", discord.Color.red())
+
+            except Exception as e:
+                embed = discord.Embed(
+                    title="<:currencypaw:1346100210899619901> Error",
+                    description=f"Error parsing data for line: {line}\nError: {str(e)}",
+                    color=discord.Color.red()
+                )
+                await ctx.send(embed=embed)
+                continue
+
+        embed = discord.Embed(
+            title="<:currencypaw:1346100210899619901> Chat Leaderboard Stats Updated",
+            description="The chat leaderboard stats have been successfully updated.",
+            color=discord.Color.green()
+        )
+        await ctx.send(embed=embed)
 
     @commands.command(name="5mlb")
-    async def modify_5min_leaderboard(self, ctx, *, data):
-        """Modify 5-minute leaderboard stats for a user (Only server owner)."""
-        if ctx.author.id != 230022649844203522:
-            await self.send_embed(ctx, "Permission Denied", "You do not have permission to use this command.", discord.Color.red())
+    async def update_5min_leaderboard(self, ctx, *, data: str):
+        """Manually updates the 5-minute leaderboard."""
+        if ctx.author.id != 230022649844203522:  # Check if the user is the server owner
+            embed = discord.Embed(
+                title="<:currencypaw:1346100210899619901> Error",
+                description="You do not have permission to use this command.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
             return
-        
-        try:
-            # Split the data into individual lines, then process each line
-            lines = data.split("\n")
-            for line in lines:
+
+        lines = data.splitlines()
+        for line in lines:
+            try:
                 parts = line.split()
-                
-                # Ensure there's at least one value for messages_sent and set vc_time to 0 if missing
                 user_id = int(parts[0])
                 messages_sent = int(parts[1])
-                vc_time = int(parts[2]) if len(parts) > 2 else 0  # Default to 0 if VC time is missing
+                vc_time = int(parts[2])
 
-                # Update the message stats and VC stats for the user
+                # Update the message count and VC time
                 db.update_messages(user_id, messages_sent)
                 db.update_vc_time(user_id, vc_time)
-            
-            await self.send_embed(ctx, "Leaderboard Update", "5-minute Leaderboard stats updated successfully.", discord.Color.green())
-        except Exception as e:
-            await self.send_embed(ctx, "Error", f"Error parsing data: {e}", discord.Color.red())
+
+            except Exception as e:
+                embed = discord.Embed(
+                    title="<:currencypaw:1346100210899619901> Error",
+                    description=f"Error parsing data for line: {line}\nError: {str(e)}",
+                    color=discord.Color.red()
+                )
+                await ctx.send(embed=embed)
+                continue
+
+        embed = discord.Embed(
+            title="<:currencypaw:1346100210899619901> 5-Minute Leaderboard Stats Updated",
+            description="The leaderboard stats have been successfully updated.",
+            color=discord.Color.green()
+        )
+        await ctx.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(UpdateLeaderboard(bot))
