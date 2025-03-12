@@ -11,7 +11,7 @@ class WelcomeCog(commands.Cog):
 
         if welcome_channel:
             embed = discord.Embed(
-                title=f"Welcome {member.mention} to the {member.guild.name}!",
+                title=f"Welcome {member.mention} to the {member.guild.name}",
                 color=discord.Color.blue()
             )
             
