@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import asyncio
 from collections import defaultdict
 from database import Database
@@ -11,6 +11,56 @@ class Leaderboard(commands.Cog):
         self.bot = bot
         self.user_message_counts = defaultdict(list)  # Tracks messages for spam detection
         self.vc_start_times = defaultdict(lambda: None)  # Tracks VC time
+        self.channel_id = 1349397400212603033  # Channel to send leaderboard updates to
+        self.send_leaderboard.start()
+
+    @tasks.loop(minutes=5)
+    async def send_leaderboard(self):
+        """Automatically sends leaderboard stats every 5 minutes."""
+        channel = self.bot.get_channel(self.channel_id)
+        if not channel:
+            return  # Channel not found
+
+        # Fetch top chatters and top VC users
+        top_chat_users = db.get_top_chatters(50)
+        top_vc_users = db.get_top_vc(50)
+
+        leaderboard_embed = discord.Embed(title="<:currencypaw:1346100210899619901> Leaderboard", color=discord.Color.gold())
+        leaderboard_embed.set_footer(text="Leaderboard Updates Every 5 Minutes")
+
+        # Add top chat users to the embed
+        for rank, (user_id, messages) in enumerate(top_chat_users, start=1):
+            user = self.bot.get_user(user_id) or f"User {user_id}"
+            leaderboard_embed.add_field(name=f"#{rank} {user}", value=f"{messages:,} messages", inline=False)
+
+        # Add top VC users to the embed
+        for rank, (user_id, vc_time) in enumerate(top_vc_users, start=1):
+            user = self.bot.get_user(user_id) or f"User {user_id}"
+            leaderboard_embed.add_field(name=f"#{rank} {user}", value=f"<:currencypaw:1346100210899619901> {vc_time // 3600}h {vc_time % 3600 // 60}m {vc_time % 60}s", inline=False)
+
+        # Check if embed size exceeds Discord's limit
+        embed_fields = leaderboard_embed.fields
+        embed_content = leaderboard_embed.description + ''.join([field.value for field in embed_fields])
+        if len(embed_content) > 6000:
+            # Split the leaderboard data into multiple embeds
+            pages = []
+            current_embed = discord.Embed(title="<:currencypaw:1346100210899619901> Leaderboard", color=discord.Color.gold())
+            for i, field in enumerate(embed_fields):
+                if len(current_embed.description + field.value) > 6000:  # Embed too big
+                    pages.append(current_embed)
+                    current_embed = discord.Embed(title="<:currencypaw:1346100210899619901> Leaderboard", color=discord.Color.gold())
+                current_embed.add_field(name=field.name, value=field.value, inline=False)
+            
+            # Add the last page if not empty
+            if current_embed.fields:
+                pages.append(current_embed)
+
+            # Send each embed
+            for page in pages:
+                await channel.send(embed=page)
+        else:
+            # Send the single embed if it's under the limit
+            await channel.send(embed=leaderboard_embed)
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -119,14 +169,3 @@ class Leaderboard(commands.Cog):
                 await message.remove_reaction(reaction.emoji, user)
 
                 if reaction.emoji == "▶" and current_page < len(pages) - 1:
-                    current_page += 1
-                    await message.edit(embed=pages[current_page])
-                elif reaction.emoji == "◀" and current_page > 0:
-                    current_page -= 1
-                    await message.edit(embed=pages[current_page])
-            except asyncio.TimeoutError:
-                await message.clear_reactions()
-                break
-
-async def setup(bot):
-    await bot.add_cog(Leaderboard(bot))
