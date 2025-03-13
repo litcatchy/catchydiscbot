@@ -17,7 +17,7 @@ class WelcomeCog(commands.Cog):
             
             # Description
             embed.description = "__**Navigate to the following channel links**__\n\n" \
-                                "[Server Info](https://discord.com/channels/1260272793883508757/1349371140962914344)\n" \
+                                "[Server Info](https://discord.com/channels/1260272793883508757/1337115224217751622)\n" \
                                 "[Roles](https://discord.com/channels/1260272793883508757/1339188696221749269)\n" \
                                 "[Lounge](https://discord.com/channels/1260272793883508757/1339193406269685821)"
             
