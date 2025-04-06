@@ -11,41 +11,7 @@ intents.message_content = True  # For accessing message content
 # Create the bot instance with the command prefix and the updated intents
 bot = commands.Bot(command_prefix=",", intents=intents)
 
-# Event to notify when the bot is ready
-@bot.event
-async def on_ready():
-    print(f"Logged in as {bot.user}")
-    
-    # Load all cogs when the bot is ready
-    for filename in os.listdir("./cogs"):
-        if filename.endswith(".py"):
-            try:
-                await bot.load_extension(f"cogs.{filename[:-3]}")
-                print(f"Loaded cog: {filename}")
-            except Exception as e:
-                print(f"Failed to load cog {filename}: {e}")
-
-# Command to load a cog
-@bot.command()
-async def load(ctx, extension):
-    """Load a cog dynamically."""
-    try:
-        await bot.load_extension(f"cogs.{extension}")
-        await ctx.send(f"{extension} has been loaded.")
-    except Exception as e:
-        await ctx.send(f"Error loading {extension}: {str(e)}")
-
-# Command to unload a cog
-@bot.command()
-async def unload(ctx, extension):
-    """Unload a cog dynamically."""
-    try:
-        await bot.unload_extension(f"cogs.{extension}")
-        await ctx.send(f"{extension} has been unloaded.")
-    except Exception as e:
-        await ctx.send(f"Error unloading {extension}: {str(e)}")
-
-# Function to load cogs on startup
+# Function to load cogs
 async def load_cogs():
     for filename in os.listdir("./cogs"):
         if filename.endswith(".py"):
@@ -55,12 +21,43 @@ async def load_cogs():
             except Exception as e:
                 print(f"Failed to load cog {filename}: {e}")
 
-# Define the setup_hook method to load cogs
-async def setup():
+# Define the setup_hook method to load cogs and sync commands
+async def setup_hook():
     await load_cogs()
+    try:
+        await bot.tree.sync()
+        print("Synced application commands (slash commands).")
+    except Exception as e:
+        print(f"Failed to sync commands: {e}")
 
-# Start the setup_hook before the bot runs
-bot.setup_hook = setup
+bot.setup_hook = setup_hook
+
+# Event to notify when the bot is ready
+@bot.event
+async def on_ready():
+    print(f"Logged in as {bot.user}")
+
+# Command to load a cog
+@bot.command()
+async def load(ctx, extension):
+    """Load a cog dynamically."""
+    try:
+        await bot.load_extension(f"cogs.{extension}")
+        await bot.tree.sync()
+        await ctx.send(f"{extension} has been loaded and commands synced.")
+    except Exception as e:
+        await ctx.send(f"Error loading {extension}: {str(e)}")
+
+# Command to unload a cog
+@bot.command()
+async def unload(ctx, extension):
+    """Unload a cog dynamically."""
+    try:
+        await bot.unload_extension(f"cogs.{extension}")
+        await bot.tree.sync()
+        await ctx.send(f"{extension} has been unloaded and commands synced.")
+    except Exception as e:
+        await ctx.send(f"Error unloading {extension}: {str(e)}")
  
 # Command: Role Help (Shortened List)
 @bot.command(name="rh")
