@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands, tasks
-from discord.utils import get
 from datetime import datetime, timedelta
 
 class MeetAFriendView(discord.ui.View):
@@ -42,7 +41,12 @@ class MeetAFriend(commands.Cog):
         channel = self.bot.get_channel(1358426717387096134)
         await channel.send(embed=embed, view=view)
         log_channel = self.bot.get_channel(1358430247628050554)
-        await log_channel.send(f"Meet a friend panel has been posted in {channel.mention}.")
+
+        log_embed = discord.Embed(
+            description=f"Meet a friend panel has been posted in {channel.mention}.",
+            color=discord.Color.blurple()
+        )
+        await log_channel.send(embed=log_embed)
 
     async def handle_queue(self, interaction: discord.Interaction):
         user = interaction.user
@@ -63,13 +67,11 @@ class MeetAFriend(commands.Cog):
             partner = partner_entry["user"]
             channel = interaction.channel
 
-            thread = await channel.create_thread(
-                name=f"chat-{user.id}",
-                type=discord.ChannelType.private_thread,
-                invitable=False
-            )
+            # Use existing thread and rename it
+            thread = self.active_threads[partner.id]["thread"]
+            await thread.edit(name=f"chat-{user.id}")
+
             await thread.add_user(user)
-            await thread.add_user(partner)
 
             embed = discord.Embed(
                 title="💌 You have been matched!",
@@ -81,7 +83,11 @@ class MeetAFriend(commands.Cog):
             self.active_threads[user.id] = {"thread": thread, "partner": partner.id, "last_activity": datetime.utcnow()}
             self.active_threads[partner.id] = {"thread": thread, "partner": user.id, "last_activity": datetime.utcnow()}
 
-            await log_channel.send(f"{user} and {partner} have been matched in thread {thread.mention}.")
+            log_embed = discord.Embed(
+                description=f"{user.mention} and {partner.mention} have been matched in thread {thread.mention}.",
+                color=discord.Color.green()
+            )
+            await log_channel.send(embed=log_embed)
 
         else:
             # Add to queue
@@ -101,7 +107,11 @@ class MeetAFriend(commands.Cog):
 
             self.active_threads[user.id] = {"thread": thread, "partner": None, "last_activity": datetime.utcnow()}
 
-            await log_channel.send(f"{user} has joined the queue in thread {thread.mention}.")
+            log_embed = discord.Embed(
+                description=f"{user.mention} has joined the queue in thread {thread.mention}.",
+                color=discord.Color.orange()
+            )
+            await log_channel.send(embed=log_embed)
 
     async def leave_queue(self, interaction: discord.Interaction):
         user = interaction.user
@@ -122,7 +132,13 @@ class MeetAFriend(commands.Cog):
                     await thread.send(f"{partner.mention} you can leave the thread or wait for a new partner.")
 
             del self.active_threads[user.id]
-            await log_channel.send(f"{user} left the active chat in thread {thread.mention}.")
+
+            log_embed = discord.Embed(
+                description=f"{user.mention} left the active chat in thread {thread.mention}.",
+                color=discord.Color.red()
+            )
+            await log_channel.send(embed=log_embed)
+
             await interaction.followup.send("You have left the chat.", ephemeral=True)
             return
 
@@ -130,7 +146,13 @@ class MeetAFriend(commands.Cog):
         for entry in self.queue:
             if entry["user"].id == user.id:
                 self.queue.remove(entry)
-                await log_channel.send(f"{user} left the queue.")
+
+                log_embed = discord.Embed(
+                    description=f"{user.mention} left the queue.",
+                    color=discord.Color.red()
+                )
+                await log_channel.send(embed=log_embed)
+
                 await interaction.followup.send("You have left the queue.", ephemeral=True)
                 return
 
