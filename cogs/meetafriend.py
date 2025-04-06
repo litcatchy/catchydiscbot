@@ -1,175 +1,149 @@
-import discord
-from discord.ext import commands, tasks
-from discord.utils import get
-from datetime import datetime, timedelta
+import discord from discord.ext import commands, tasks import asyncio from datetime import datetime, timedelta
 
-intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
+Your emojis
 
-bot = commands.Bot(command_prefix=',', intents=intents)
+MEET_EMOJI = '<:ios_emoji58:1358438461732028560>' LEAVE_EMOJI = '<:leave:1358438625280524348>'
 
-QUEUE = []
-PANEL_CHANNEL_ID = 1358426717387096134
-LOG_CHANNEL_ID = 1358430247628050554
-THREAD_TIMEOUT_HOURS = 5
-panel_message_id = None
+Channel and log channel IDs
 
-class MeetAFriend(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
-        self.active_threads = {}
-        self.cleanup_threads.start()
+PANEL_CHANNEL_ID = 1358426717387096134 LOG_CHANNEL_ID = 1358430247628050554
 
-    @commands.command(name="meetafriendpanel")
-    async def meetafriendpanel(self, ctx):
-        if ctx.channel.id != PANEL_CHANNEL_ID:
-            return await ctx.send("Use this command in the correct channel.", delete_after=5)
+class MeetAFriend(commands.Cog): def init(self, bot): self.bot = bot self.queue = [] self.active_threads = {} self.last_activity = {} self.cleanup_threads.start()
 
-        global panel_message_id
+@commands.command(name='meetafriendpanel')
+async def meet_a_friend_panel(self, ctx):
+    if ctx.channel.id != PANEL_CHANNEL_ID:
+        return
 
-        # Check if panel already exists
-        if panel_message_id:
-            try:
-                existing_message = await ctx.channel.fetch_message(panel_message_id)
-                if existing_message:
-                    return await ctx.send("Panel already exists!", delete_after=5)
-            except discord.NotFound:
-                pass  # Message deleted, continue to send new panel
+    embed = discord.Embed(
+        title=f'{MEET_EMOJI} Meet a friend',
+        description='Feeling shy and lonely? Chat individually\nWant to chat one-on-one? Click below to get paired with someone.',
+        color=discord.Color.blurple()
+    )
+    embed.set_footer(text='discord.gg/lushie')
 
-        embed = discord.Embed(
-            title="<:ios_emoji58:1358438461732028560> Meet a friend",
-            description="Feeling shy and lonely? Chat individually\nWant to chat one-on-one? Click below to get paired with someone.",
-            color=discord.Color.blurple()
+    view = discord.ui.View()
+    view.add_item(MeetButton(self))
+    view.add_item(LeaveButton(self))
+
+    await ctx.send(embed=embed, view=view)
+
+async def create_thread(self, user):
+    panel_channel = self.bot.get_channel(PANEL_CHANNEL_ID)
+
+    existing_thread = discord.utils.get(panel_channel.threads, name="chat")
+    if existing_thread:
+        thread = existing_thread
+    else:
+        thread = await panel_channel.create_thread(
+            name="chat",
+            type=discord.ChannelType.private_thread
         )
-        embed.set_footer(text="discord.gg/lushie")
 
-        view = discord.ui.View()
-        view.add_item(discord.ui.Button(
-            style=discord.ButtonStyle.primary,
-            emoji="<:ios_emoji58:1358438461732028560>",
-            label="Meet a friend",
-            custom_id="meet_a_friend"
-        ))
-        view.add_item(discord.ui.Button(
-            style=discord.ButtonStyle.secondary,
-            emoji="<:leave:1358438625280524348>",
-            label="Leave",
-            custom_id="leave_queue"
-        ))
+    await thread.add_user(user)
+    self.last_activity[thread.id] = datetime.utcnow()
+    return thread
 
-        message = await ctx.send(embed=embed, view=view)
-        panel_message_id = message.id
+async def log(self, message):
+    log_channel = self.bot.get_channel(LOG_CHANNEL_ID)
+    embed = discord.Embed(
+        description=message,
+        color=discord.Color.green()
+    )
+    await log_channel.send(embed=embed)
 
-    @tasks.loop(minutes=30)
-    async def cleanup_threads(self):
-        now = datetime.utcnow()
-        to_delete = []
-        for thread_id, last_active in list(self.active_threads.items()):
-            if now - last_active > timedelta(hours=THREAD_TIMEOUT_HOURS):
-                thread = self.bot.get_channel(thread_id)
-                if thread:
-                    await thread.delete(reason="Thread inactive for over 5 hours")
-                    await self.log_embed(f"Deleted inactive thread: {thread.name}")
-                to_delete.append(thread_id)
-        for thread_id in to_delete:
-            del self.active_threads[thread_id]
+async def handle_queue(self, interaction):
+    user = interaction.user
 
-    async def log_embed(self, description):
-        channel = self.bot.get_channel(LOG_CHANNEL_ID)
-        if channel:
-            embed = discord.Embed(description=description, color=discord.Color.orange())
-            await channel.send(embed=embed)
-
-    @commands.Cog.listener()
-    async def on_interaction(self, interaction: discord.Interaction):
-        if not interaction.type == discord.InteractionType.component:
+    # If user already in queue or in active chat
+    for u1, u2 in self.active_threads.values():
+        if user.id in (u1.id, u2.id):
+            await interaction.response.send_message("You are already in a chat.", ephemeral=True)
             return
 
-        if interaction.data['custom_id'] == 'meet_a_friend':
-            await interaction.response.defer(ephemeral=True)
-            user = interaction.user
+    if user.id in self.queue:
+        await interaction.response.send_message("You are already in the queue.", ephemeral=True)
+        return
 
-            # Check if user is already in queue
-            if user.id in QUEUE:
-                await interaction.followup.send("You're already in the queue!", ephemeral=True)
-                return
+    self.queue.append(user.id)
+    thread = await self.create_thread(user)
+    await thread.send(embed=discord.Embed(description=f"Hang in tight you will find your pair soon {MEET_EMOJI}"))
 
-            # Check for existing thread
-            existing_thread = discord.utils.get(interaction.channel.threads, name=f"chat")
-            if existing_thread:
-                await interaction.followup.send("A chat is already in progress.", ephemeral=True)
-                return
+    await self.log(f"{user.mention} has joined the queue.")
+    await interaction.response.send_message("You have been added to the queue", ephemeral=True)
 
-            # Add user to queue
-            QUEUE.append(user.id)
-            await self.log_embed(f"{user.mention} joined the queue.")
+    # Matchmaking
+    if len(self.queue) >= 2:
+        user1_id = self.queue.pop(0)
+        user2_id = self.queue.pop(0)
 
-            if len(QUEUE) >= 2:
-                user1_id = QUEUE.pop(0)
-                user2_id = QUEUE.pop(0)
+        user1 = await self.bot.fetch_user(user1_id)
+        user2 = await self.bot.fetch_user(user2_id)
 
-                user1 = interaction.guild.get_member(user1_id)
-                user2 = interaction.guild.get_member(user2_id)
+        thread = await self.create_thread(user1)
+        await thread.add_user(user2)
 
-                # Create private thread
-                thread = await interaction.channel.create_thread(
-                    name=f"chat",
-                    type=discord.ChannelType.private_thread,
-                    invitable=False
-                )
-                await thread.add_user(user1)
-                await thread.add_user(user2)
+        self.active_threads[thread.id] = (user1, user2)
+        self.last_activity[thread.id] = datetime.utcnow()
 
-                self.active_threads[thread.id] = datetime.utcnow()
+        embed = discord.Embed(
+            description=f'You have been matched {MEET_EMOJI}\n{user1.mention} and {user2.mention} have been connected.',
+            color=discord.Color.green()
+        )
+        await thread.send(embed=embed)
+        await self.log(f"{user1.mention} and {user2.mention} have been connected in {thread.mention}.")
 
-                # Send matched message
-                embed = discord.Embed(
-                    description=f"You have been matched! <:ios_emoji58:1358438461732028560>\n{user1.mention} and {user2.mention} have been connected.",
-                    color=discord.Color.green()
-                )
-                await thread.send(embed=embed)
-                await self.log_embed(f"{user1.mention} and {user2.mention} have been connected in {thread.mention}.")
-            else:
-                # Create thread for single user
-                thread = await interaction.channel.create_thread(
-                    name=f"chat",
-                    type=discord.ChannelType.private_thread,
-                    invitable=False
-                )
-                await thread.add_user(user)
+async def handle_leave(self, interaction):
+    user = interaction.user
 
-                self.active_threads[thread.id] = datetime.utcnow()
+    if user.id in self.queue:
+        self.queue.remove(user.id)
+        await self.log(f"{user.mention} left the queue.")
+        await interaction.response.send_message("You have left the queue.", ephemeral=True)
+        return
 
-                embed = discord.Embed(
-                    description="Hang in tight, you will find your pair soon! <:ios_emoji58:1358438461732028560>",
-                    color=discord.Color.blurple()
-                )
-                await thread.send(embed=embed)
-                await self.log_embed(f"{user.mention} is waiting for a match in {thread.mention}.")
+    for thread_id, (user1, user2) in list(self.active_threads.items()):
+        if user.id in (user1.id, user2.id):
+            thread = self.bot.get_channel(thread_id)
+            if thread:
+                await thread.send(embed=discord.Embed(description=f"{user.mention} has left the chat."))
+                await thread.remove_user(user1)
+                await thread.remove_user(user2)
+                await thread.edit(archived=True)
+                await self.log(f"{user.mention} left the chat {thread.mention}.")
+            del self.active_threads[thread_id]
+            del self.last_activity[thread_id]
+            await interaction.response.send_message("You have left the chat.", ephemeral=True)
+            return
 
-        elif interaction.data['custom_id'] == 'leave_queue':
-            await interaction.response.defer(ephemeral=True)
-            user = interaction.user
-            if user.id in QUEUE:
-                QUEUE.remove(user.id)
-                await interaction.followup.send("You have left the queue.", ephemeral=True)
-                await self.log_embed(f"{user.mention} left the queue.")
-            else:
-                # Check if user is in any active thread
-                for thread_id in list(self.active_threads):
-                    thread = self.bot.get_channel(thread_id)
-                    if thread and user in thread.members:
-                        await thread.remove_user(user)
-                        await self.log_embed(f"{user.mention} left the chat in {thread.mention}.")
-                        await interaction.followup.send("You have left the chat.", ephemeral=True)
-                        return
-                await interaction.followup.send("You're not in any queue or chat.", ephemeral=True)
+    await interaction.response.send_message("You are not in a queue or chat.", ephemeral=True)
 
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        if message.channel.id in self.active_threads:
-            self.active_threads[message.channel.id] = datetime.utcnow()
+@tasks.loop(minutes=30)
+async def cleanup_threads(self):
+    now = datetime.utcnow()
+    for thread_id, last_active in list(self.last_activity.items()):
+        if now - last_active > timedelta(hours=5):
+            thread = self.bot.get_channel(thread_id)
+            if thread:
+                await thread.send(embed=discord.Embed(description="This chat has been inactive for 5 hours and will be closed."))
+                await thread.edit(archived=True)
+                await self.log(f"Archived inactive thread {thread.mention}.")
+            self.active_threads.pop(thread_id, None)
+            self.last_activity.pop(thread_id, None)
 
-def setup(bot):
-    bot.add_cog(MeetAFriend(bot))
+@cleanup_threads.before_loop
+async def before_cleanup(self):
+    await self.bot.wait_until_ready()
+
+class MeetButton(discord.ui.Button): def init(self, cog): super().init(label=f'Meet a friend {MEET_EMOJI}', style=discord.ButtonStyle.blurple) self.cog = cog
+
+async def callback(self, interaction: discord.Interaction):
+    await self.cog.handle_queue(interaction)
+
+class LeaveButton(discord.ui.Button): def init(self, cog): super().init(label=f'Leave {LEAVE_EMOJI}', style=discord.ButtonStyle.red) self.cog = cog
+
+async def callback(self, interaction: discord.Interaction):
+    await self.cog.handle_leave(interaction)
+
+async def setup(bot): await bot.add_cog(MeetAFriend(bot))
+
