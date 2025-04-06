@@ -22,7 +22,7 @@ class Confession(commands.Cog):
 
         # Prepare confession embed
         confession_embed = discord.Embed(
-            title="New confession",
+            title="New confession:",
             description=f"**{title}**\n{message}",
             color=discord.Color.from_str("#FFB6C1"),
             timestamp=datetime.datetime.utcnow()
