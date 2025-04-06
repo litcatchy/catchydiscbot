@@ -108,7 +108,7 @@ class MeetAFriend(commands.Cog):
             self.active_threads[user.id] = {"thread": thread, "partner": None, "last_activity": datetime.utcnow()}
 
             log_embed = discord.Embed(
-                description=f"{user.mention} has joined the queue in thread {thread.mention}.",
+                description=f"{user.mention} has joined the queue in thread {thread.mention}. Note - inactive threads get deleted on their own after 5 hours of inactivity.",
                 color=discord.Color.orange()
             )
             await log_channel.send(embed=log_embed)
