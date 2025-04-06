@@ -126,7 +126,7 @@ class MeetAFriend(commands.Cog):
             # Add to queue
             self.queue.append({"user": user, "timestamp": datetime.utcnow()})
             thread = await interaction.channel.create_thread(
-                name=f"chat-{user.id}",
+                name=f"queue-{user.id}",
                 type=discord.ChannelType.private_thread,
                 invitable=False
             )
@@ -141,7 +141,7 @@ class MeetAFriend(commands.Cog):
             self.active_threads[user.id] = {"thread": thread, "partner": None, "last_activity": datetime.utcnow()}
 
             log_embed = discord.Embed(
-                description=f"{user.mention} has joined the queue in thread {thread.mention}. Note - inactive threads get deleted on their own after 5 hours of inactivity.",
+                description=f"{user.mention} has joined the queue in thread {thread.mention}.",
                 color=discord.Color.orange()
             )
             await log_channel.send(embed=log_embed)
