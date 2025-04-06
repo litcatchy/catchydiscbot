@@ -23,10 +23,44 @@ class MeetAFriend(commands.Cog):
         self.bot = bot
         self.queue = []
         self.active_threads = {}
+        self.panel_message = None
         self.inactivity_check.start()
+        self.bot.loop.create_task(self.post_panel_after_ready())
 
     def cog_unload(self):
         self.inactivity_check.cancel()
+
+    async def post_panel_after_ready(self):
+        await self.bot.wait_until_ready()
+        channel = self.bot.get_channel(1358426717387096134)
+        log_channel = self.bot.get_channel(1358430247628050554)
+
+        # Clean up old panel messages
+        try:
+            async for message in channel.history(limit=20):
+                if message.author.id == self.bot.user.id and message.embeds:
+                    embed = message.embeds[0]
+                    if embed.title == "💌 Meet a friend":
+                        await message.delete()
+        except Exception as e:
+            print(f"Error deleting old panel: {e}")
+
+        # Post new panel
+        embed = discord.Embed(
+            title="💌 Meet a friend",
+            description="Feeling shy and lonely? Chat individually\n"
+                        "Want to chat one-on-one? Click below to get paired with someone.",
+            color=discord.Color.pink()
+        )
+        embed.set_footer(text="discord.gg/lushie")
+        view = MeetAFriendView(self.bot)
+        self.panel_message = await channel.send(embed=embed, view=view)
+
+        log_embed = discord.Embed(
+            description=f"Meet a friend panel has been posted in {channel.mention}.",
+            color=discord.Color.blurple()
+        )
+        await log_channel.send(embed=log_embed)
 
     @commands.command(name="meetafriendpanel")
     async def meetafriendpanel(self, ctx):
@@ -70,7 +104,6 @@ class MeetAFriend(commands.Cog):
             # Use existing thread and rename it
             thread = self.active_threads[partner.id]["thread"]
             await thread.edit(name=f"chat-{user.id}")
-
             await thread.add_user(user)
 
             embed = discord.Embed(
@@ -93,7 +126,7 @@ class MeetAFriend(commands.Cog):
             # Add to queue
             self.queue.append({"user": user, "timestamp": datetime.utcnow()})
             thread = await interaction.channel.create_thread(
-                name=f"queue-{user.id}",
+                name=f"chat-{user.id}",
                 type=discord.ChannelType.private_thread,
                 invitable=False
             )
