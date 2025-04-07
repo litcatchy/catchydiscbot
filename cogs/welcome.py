@@ -32,7 +32,7 @@ class Welcome(commands.Cog):
 
         message = await channel.send(content=member.mention, embed=embed, view=view)
 
-        await asyncio.sleep(10)
+        await asyncio.sleep(18)
 
         try:
             await message.delete()
