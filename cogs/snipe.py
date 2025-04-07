@@ -84,5 +84,32 @@ class Snipe(commands.Cog):
         ]
         await self.paginate(ctx, data_list, "<:currencypaw:1346100210899619901> Removed Reactions")
 
+    @commands.command(name="cs")
+    async def clear_snipe(self, ctx):
+        """Clear the stored deleted messages."""
+        if not ctx.author.guild_permissions.manage_messages:
+            return await ctx.send(embed=discord.Embed(description="You will need manage messages permission to execute that command.", color=discord.Color.red()))
+
+        if ctx.guild.id not in self.sniped_messages or not self.sniped_messages[ctx.guild.id]:
+            return await ctx.send(embed=discord.Embed(description="There are no recent deleted messages to clear snipes.", color=discord.Color.red()))
+
+        self.sniped_messages[ctx.guild.id].clear()
+
+        await ctx.message.add_reaction("✅")
+
+        # Logging
+        log_channel = self.bot.get_channel(1339898523407355945)
+        if log_channel:
+            embed = discord.Embed(
+                title="Snipe Cleared",
+                description=f"Deleted message snipes have been cleared by {ctx.author.mention} (`{ctx.author.id}`)",
+                color=discord.Color.green()
+            )
+            embed.add_field(name="Guild", value=f"{ctx.guild.name} (`{ctx.guild.id}`)", inline=False)
+            embed.add_field(name="Channel", value=f"{ctx.channel.mention} (`{ctx.channel.id}`)", inline=False)
+            embed.set_footer(text="Clear Snipe Log")
+            embed.timestamp = discord.utils.utcnow()
+            await log_channel.send(embed=embed)
+
 async def setup(bot):
     await bot.add_cog(Snipe(bot))
