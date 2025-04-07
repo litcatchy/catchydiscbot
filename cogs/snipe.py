@@ -85,26 +85,33 @@ class Snipe(commands.Cog):
         await self.paginate(ctx, data_list, "<:currencypaw:1346100210899619901> Removed Reactions")
 
     @commands.command(name="cs")
-    @commands.has_permissions(manage_messages=True)
     async def clear_snipe(self, ctx):
         """Clear deleted message snipes."""
-        guild_id = ctx.guild.id
-        cleared_messages = self.sniped_messages.get(guild_id, deque())
+        if not ctx.author.guild_permissions.manage_messages:
+            embed = discord.Embed(description="You will need manage messages permission to execute that command.", color=discord.Color.red())
+            return await ctx.send(embed=embed)
 
-        if not cleared_messages:
-            return await ctx.send(embed=discord.Embed(description="There are no recent deleted messages to clear snipes.", color=discord.Color.red()))
+        snipes = self.sniped_messages.get(ctx.guild.id)
 
-        cleared_messages_list = "\n".join(f"- {author}: {content}" for author, content in cleared_messages)
+        if not snipes:
+            embed = discord.Embed(description="There are no recent deleted messages to clear snipes.", color=discord.Color.red())
+            return await ctx.send(embed=embed)
 
-        # Clear the snipe history
-        self.sniped_messages[guild_id].clear()
+        # Prepare the cleared messages for the log
+        cleared_messages = "\n".join(
+            f"- {author}: {content}" for author, content in snipes
+        )
 
-        # React to confirmation
+        # Clear the snipe data
+        self.sniped_messages[ctx.guild.id].clear()
+
+        # React with ✅
         await ctx.message.add_reaction("✅")
 
-        # Log channel
+        # Prepare log embed
         log_channel = self.bot.get_channel(1339898523407355945)
         if log_channel:
+            timestamp = int(discord.utils.utcnow().timestamp())
             embed = discord.Embed(
                 title="Snipe Cleared",
                 description=f"Deleted message snipes have been cleared by {ctx.author.mention} (`{ctx.author.id}`)",
@@ -112,14 +119,9 @@ class Snipe(commands.Cog):
             )
             embed.add_field(name="Guild", value=f"{ctx.guild.name} (`{ctx.guild.id}`)", inline=False)
             embed.add_field(name="Channel", value=f"{ctx.channel.name} (`{ctx.channel.id}`)", inline=False)
-            embed.add_field(name="Cleared Messages", value=cleared_messages_list or "No messages.", inline=False)
-            embed.set_footer(text="Clear sniper log | " + discord.utils.format_dt(discord.utils.utcnow(), style='f'))
+            embed.add_field(name="Cleared Messages", value=cleared_messages or "No messages.", inline=False)
+            embed.set_footer(text=f"Clear sniper log | <t:{timestamp}:f>")
             await log_channel.send(embed=embed)
-
-    @clear_snipe.error
-    async def clear_snipe_error(self, ctx, error):
-        if isinstance(error, commands.MissingPermissions):
-            await ctx.send(embed=discord.Embed(description="You will need manage messages permission to execute that command.", color=discord.Color.red()))
 
 async def setup(bot):
     await bot.add_cog(Snipe(bot))
