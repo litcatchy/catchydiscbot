@@ -1,31 +1,35 @@
 import discord
 from discord.ext import commands
 
-class WelcomeCog(commands.Cog):
+class Welcome(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
-        welcome_channel = member.guild.get_channel(1349365300117635207)  # Welcome channel ID
+        await self.send_welcome_message(member)
 
-        if welcome_channel:
-            embed = discord.Embed(
-                title=f"Welcome {member.mention} to the {member.guild.name}",
-                color=discord.Color.blue()
-            )
-            
-            # Description
-            embed.description = "__**Navigate to the following channel links**__\n\n" \
-                                "[Server Info](https://discord.com/channels/1260272793883508757/1337115224217751622)\n" \
-                                "[Roles](https://discord.com/channels/1260272793883508757/1339188696221749269)\n" \
-                                "[Lounge](https://discord.com/channels/1260272793883508757/1339193406269685821)"
-            
-            # Set GIF as the embed image
-            embed.set_image(url="https://cdn.discordapp.com/attachments/1339184630514974740/1349439380649148436/standard_10.gif?ex=67d31adb&is=67d1c95b&hm=16634f62e74ecb2b15bfba0094fa740a50618e801dfbd7b844f4ee82f68bc855&")
+    @commands.command(name="welcum")
+    async def test_welcome(self, ctx):
+        await self.send_welcome_message(ctx.author)
 
-            await welcome_channel.send(embed=embed)
+    async def send_welcome_message(self, member):
+        channel = member.guild.get_channel(1339193406269685821)
+        if channel is None:
+            return
 
-# Add the cog to the bot
+        embed = discord.Embed(
+            description=f"Welcome {member.mention} to {member.guild.name}\n– say something! we don’t bite (:",
+            color=discord.Color.blurple()
+        )
+
+        view = discord.ui.View()
+        view.add_item(discord.ui.Button(label="👤 Edit Profile Roles", url="https://discord.com/channels/1260272793883508757/1339188696221749269"))
+        view.add_item(discord.ui.Button(label="ℹ️ Server info", url="https://discord.com/channels/1260272793883508757/1337115224217751622"))
+
+        message = await channel.send(content=member.mention, embed=embed, view=view)
+        await discord.utils.sleep_until(discord.utils.utcnow() + discord.timedelta(seconds=10))
+        await message.delete()
+
 async def setup(bot):
-    await bot.add_cog(WelcomeCog(bot))
+    await bot.add_cog(Welcome(bot))
