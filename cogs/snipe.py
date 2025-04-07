@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from collections import deque
+from datetime import datetime
 
 class Snipe(commands.Cog):
     def __init__(self, bot):
@@ -91,27 +92,19 @@ class Snipe(commands.Cog):
             embed = discord.Embed(description="You will need manage messages permission to execute that command.", color=discord.Color.red())
             return await ctx.send(embed=embed)
 
-        snipes = self.sniped_messages.get(ctx.guild.id)
-
+        snipes = self.sniped_messages.get(ctx.guild.id, [])
         if not snipes:
             embed = discord.Embed(description="There are no recent deleted messages to clear snipes.", color=discord.Color.red())
             return await ctx.send(embed=embed)
 
-        # Prepare the cleared messages for the log
+        # Prepare cleared messages for logs
         cleared_messages = "\n".join(
             f"- {author}: {content}" for author, content in snipes
-        )
+        ) or "No messages."
 
-        # Clear the snipe data
-        self.sniped_messages[ctx.guild.id].clear()
-
-        # React with ✅
-        await ctx.message.add_reaction("✅")
-
-        # Prepare log embed
+        # Log channel
         log_channel = self.bot.get_channel(1339898523407355945)
         if log_channel:
-            timestamp = int(discord.utils.utcnow().timestamp())
             embed = discord.Embed(
                 title="Snipe Cleared",
                 description=f"Deleted message snipes have been cleared by {ctx.author.mention} (`{ctx.author.id}`)",
@@ -119,9 +112,13 @@ class Snipe(commands.Cog):
             )
             embed.add_field(name="Guild", value=f"{ctx.guild.name} (`{ctx.guild.id}`)", inline=False)
             embed.add_field(name="Channel", value=f"{ctx.channel.name} (`{ctx.channel.id}`)", inline=False)
-            embed.add_field(name="Cleared Messages", value=cleared_messages or "No messages.", inline=False)
-            embed.set_footer(text=f"Clear sniper log | <t:{timestamp}:f>")
+            embed.add_field(name="Cleared Messages", value=cleared_messages, inline=False)
+            embed.set_footer(text=f"Clear sniper log | {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}")
             await log_channel.send(embed=embed)
+
+        # Clear snipes and react
+        self.sniped_messages[ctx.guild.id].clear()
+        await ctx.message.add_reaction("✅")
 
 async def setup(bot):
     await bot.add_cog(Snipe(bot))
