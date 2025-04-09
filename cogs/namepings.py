@@ -15,17 +15,22 @@ class NamePing(commands.Cog):
             1339954295478419456: ["rey", "reyna"],
         }
         self.responses = [
-            "Uh oh, someone’s talking about {mention}!",
-            "Did someone just say {mention}? I'm watching!",
-            "{mention}, you just got name-dropped!",
-            "Yoo {mention}, they talking about you!",
-            "Guess who got mentioned? {mention}!",
-            "Spotted {mention} in the wild!",
-            "Careful, you’re summoning {mention}!",
-            "{mention}, your ears burning?",
-            "Looks like {mention} is famous today!",
-            "Alert! {mention} mentioned!"
+            "{mention}, they’re talking about you.",
+            "I heard someone mention {mention}.",
+            "{mention}, your name just came up.",
+            "{mention}, you might want to check this out.",
+            "Looks like {mention} is in the conversation.",
+            "Looks like {mention} is famous today.",
+            "{mention}, you got mentioned.",
         ]
+        self.special_responses = {
+            962581886318825483: [  # Yuki
+                "Hai {mention}, the slaves are calling you.",
+            ],
+            230022649844203522: [  # Catchy
+                "Another day, another {mention} mention. ",
+            ]
+        }
         self.cooldown = {}  # channel_id: timestamp
 
     @commands.Cog.listener()
@@ -51,9 +56,17 @@ class NamePing(commands.Cog):
 
         if mentions:
             self.cooldown[message.channel.id] = current_time
+            async with message.channel.typing():
+                await asyncio.sleep(random.uniform(0.3, 1.0))  # slight typing delay
+
             for user_id in mentions:
                 mention = f"<@{user_id}>"
-                response = random.choice(self.responses).format(mention=mention)
+
+                if user_id in self.special_responses:
+                    response = random.choice(self.special_responses[user_id]).format(mention=mention)
+                else:
+                    response = random.choice(self.responses).format(mention=mention)
+
                 await message.channel.send(response)
 
 async def setup(bot):
