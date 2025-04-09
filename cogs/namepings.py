@@ -15,13 +15,13 @@ class NamePing(commands.Cog):
             1339954295478419456: ["rey", "reyna"],
         }
         self.responses = [
-            "Uh oh, someone's talking about {mention}!",
+            "Uh oh, someone’s talking about {mention}!",
             "Did someone just say {mention}? I'm watching!",
             "{mention}, you just got name-dropped!",
             "Yoo {mention}, they talking about you!",
             "Guess who got mentioned? {mention}!",
             "Spotted {mention} in the wild!",
-            "Careful, you're summoning {mention}!",
+            "Careful, you’re summoning {mention}!",
             "{mention}, your ears burning?",
             "Looks like {mention} is famous today!",
             "Alert! {mention} mentioned!"
