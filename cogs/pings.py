@@ -86,7 +86,7 @@ class AntiNuke(commands.Cog):
                 try:
                     warning_embed = discord.Embed(
                         title="Warning",
-                        description=f"{user.mention}, you're only allowed to ping `@everyone` or `@here` once every 4 hours.",
+                        description=f"{user.mention} you’re only allowed to ping `@everyone` or `@here` once every 4 hours, next ping within that time will result in role removal.",
                         color=discord.Color.orange()
                     )
                     warning_embed.set_footer(text="1/1 ping in the last 4 hours already done")
