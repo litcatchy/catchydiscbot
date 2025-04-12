@@ -29,7 +29,8 @@ class AntiNuke(commands.Cog):
         if message.guild is None or message.author.bot:
             return
 
-        if not message.mentions_everyone:
+        # Corrected here
+        if not message.mention_everyone:
             return
 
         now = datetime.datetime.utcnow()
