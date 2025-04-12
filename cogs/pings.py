@@ -12,15 +12,15 @@ class AntiNuke(commands.Cog):
     @tasks.loop(minutes=30)
     async def cleanup_old_pings(self):
         now = datetime.datetime.utcnow()
-        four_hours_ago = now - datetime.timedelta(hours=4)
+        six_hours_ago = now - datetime.timedelta(hours=6)
 
         self.user_ping_tracker = {
-            uid: [t for t in times if t > four_hours_ago]
+            uid: [t for t in times if t > six_hours_ago]
             for uid, times in self.user_ping_tracker.items()
         }
 
         self.webhook_ping_tracker = {
-            wid: [t for t in times if t > four_hours_ago]
+            wid: [t for t in times if t > six_hours_ago]
             for wid, times in self.webhook_ping_tracker.items()
         }
 
@@ -29,7 +29,7 @@ class AntiNuke(commands.Cog):
         if message.guild is None or message.author.bot:
             return
 
-        if "@everyone" not in message.content and "@here" not in message.content:
+        if not message.mentions_everyone:
             return
 
         now = datetime.datetime.utcnow()
@@ -40,15 +40,15 @@ class AntiNuke(commands.Cog):
             self.webhook_ping_tracker.setdefault(webhook_id, []).append(now)
 
             pings = self.webhook_ping_tracker[webhook_id]
-            recent_pings = [t for t in pings if (now - t).total_seconds() <= 14400]
+            recent_pings = [t for t in pings if (now - t).total_seconds() <= 21600]
 
             if len(recent_pings) == 1:
                 warning_embed = discord.Embed(
                     title="Webhook Ping Warning",
-                    description="A webhook just pinged `@everyone` or `@here`. One ping is allowed every 4 hours.",
+                    description="A webhook just pinged `@everyone` or `@here`. One ping is allowed every 6 hours.",
                     color=discord.Color.orange()
                 )
-                warning_embed.set_footer(text="1/1 ping in the last 4 hours already done")
+                warning_embed.set_footer(text="1/1 ping in the last 6 hours already done")
                 try:
                     await message.channel.send(embed=warning_embed)
                 except discord.Forbidden:
@@ -62,7 +62,7 @@ class AntiNuke(commands.Cog):
                             await wh.delete()
                             deleted_embed = discord.Embed(
                                 title="Webhook Deleted",
-                                description="A webhook was deleted for spamming `@everyone` or `@here` more than once in 4 hours.",
+                                description="A webhook was deleted for spamming `@everyone` or `@here` more than once in 6 hours.",
                                 color=discord.Color.red()
                             )
                             await message.channel.send(embed=deleted_embed)
@@ -80,16 +80,16 @@ class AntiNuke(commands.Cog):
             self.user_ping_tracker.setdefault(user.id, []).append(now)
 
             pings = self.user_ping_tracker[user.id]
-            recent_pings = [t for t in pings if (now - t).total_seconds() <= 14400]
+            recent_pings = [t for t in pings if (now - t).total_seconds() <= 21600]
 
             if len(recent_pings) == 1:
                 try:
                     warning_embed = discord.Embed(
                         title="Warning",
-                        description=f"{user.mention} you’re only allowed to ping `@everyone` or `@here` once every 4 hours, next ping within that time will result in role removal.",
+                        description=f"{user.mention} you’re only allowed to ping `@everyone` or `@here` once every 6 hours, next ping within that time will result in role removal.",
                         color=discord.Color.orange()
                     )
-                    warning_embed.set_footer(text="1/1 ping in the last 4 hours already done")
+                    warning_embed.set_footer(text="1/1 ping in the last 6 hours already done")
                     await message.channel.send(embed=warning_embed)
                 except discord.Forbidden:
                     pass
@@ -107,7 +107,7 @@ class AntiNuke(commands.Cog):
                 try:
                     alert_embed = discord.Embed(
                         title="Roles Removed",
-                        description=f"{user.mention} pinged `@everyone` or `@here` more than once in 4 hours. All roles removed.",
+                        description=f"{user.mention} pinged `@everyone` or `@here` more than once in 6 hours. All roles removed.",
                         color=discord.Color.red()
                     )
                     await message.channel.send(embed=alert_embed)
