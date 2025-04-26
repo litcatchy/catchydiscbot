@@ -12,7 +12,7 @@ class Snipe(commands.Cog):
     async def paginate(self, ctx, data_list, title):
         """Handles pagination using buttons."""
         if not data_list:
-            return await ctx.send(embed=discord.Embed(description="<:currencypaw:1346100210899619901> No data available.", color=discord.Color.red()))
+            return await ctx.send(embed=discord.Embed(description="No data available.", color=discord.Color.red()))
 
         index = 0
         total = len(data_list)
@@ -28,7 +28,7 @@ class Snipe(commands.Cog):
                 super().__init__()
                 self.timeout = 30
 
-            @discord.ui.button(label="Page Back", style=discord.ButtonStyle.primary, disabled=True)
+            @discord.ui.button(label="Previous", style=discord.ButtonStyle.primary, disabled=True)
             async def previous_page(self, interaction: discord.Interaction, button: discord.ui.Button):
                 nonlocal index
                 index -= 1
@@ -37,7 +37,7 @@ class Snipe(commands.Cog):
                 self.children[1].disabled = False
                 await interaction.response.edit_message(embed=await update_embed(), view=self)
 
-            @discord.ui.button(label="Page Next", style=discord.ButtonStyle.primary)
+            @discord.ui.button(label="Next", style=discord.ButtonStyle.primary)
             async def next_page(self, interaction: discord.Interaction, button: discord.ui.Button):
                 nonlocal index
                 index += 1
@@ -73,8 +73,8 @@ class Snipe(commands.Cog):
         data_list = [
             f"**Message by {author.mention}**\n{content}"
             for author, content in self.sniped_messages.get(ctx.guild.id, [])
-        ]
-        await self.paginate(ctx, data_list, "<:currencypaw:1346100210899619901> Deleted Messages")
+        
+        await self.paginate(ctx, data_list, "Deleted Messages")
 
     @commands.command(name="rs")
     async def snipe_reaction(self, ctx):
@@ -83,7 +83,7 @@ class Snipe(commands.Cog):
             f"**Reaction by {user.mention}**\nReacted with {emoji} on:\n**Message:** {content}\n[Jump to message]({message_url})"
             for user, emoji, content, message_url in self.sniped_reactions.get(ctx.guild.id, [])
         ]
-        await self.paginate(ctx, data_list, "<:currencypaw:1346100210899619901> Removed Reactions")
+        await self.paginate(ctx, data_list, "Removed Reactions")
 
     @commands.command(name="cs")
     async def clear_snipe(self, ctx):
