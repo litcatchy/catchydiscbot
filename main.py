@@ -92,7 +92,7 @@ async def role_add_all(ctx, *, role_name: str):
 
     if role is None:
         embed = discord.Embed(
-            title="<:currencypaw:1346100210899619901> Role Not Found",
+            title="<:cancel:1346853536738316339> Role Not Found",
             description=f"{ctx.author.mention} no role named `{role_name}` exists.",
             color=discord.Color.red()
         )
@@ -105,7 +105,7 @@ async def role_add_all(ctx, *, role_name: str):
 
     if total_humans == 0:
         embed = discord.Embed(
-            title="<:currencypaw:1346100210899619901> No Eligible Users",
+            title="<:cancel:1346853536738316339> No Eligible Users",
             description=f"{ctx.author.mention} all humans already have the `{role.name}` role.",
             color=discord.Color.orange()
         )
@@ -119,7 +119,7 @@ async def role_add_all(ctx, *, role_name: str):
     estimated_seconds = estimated_seconds % 60
 
     embed = discord.Embed(
-        title=f"<:currencypaw:1346100210899619901> Adding role `{role.name}` to everyone",
+        title=f"<:success:1346853488738566175> Adding role `{role.name}` to everyone",
         description=(
             f"Total Humans: **{total_humans}**\n"
             f"Estimated Time: **{int(estimated_hours)}h {int(estimated_minutes)}m {int(estimated_seconds)}s**"
@@ -145,7 +145,7 @@ async def role_add_all(ctx, *, role_name: str):
     time_taken_minutes = (time_taken_seconds % 3600) // 60
     time_taken_seconds = time_taken_seconds % 60
 
-    embed.title = f"<:currencypaw:1346100210899619901> Role `{role.name}` successfully added to everyone"
+    embed.title = f"<:success:1346853488738566175> Role `{role.name}` successfully added to everyone"
     embed.description = (
         f"Added to **{success_count}/{total_humans}** users.\n"
         f"Time Taken: **{time_taken_hours}h {time_taken_minutes}m {time_taken_seconds}s**"
@@ -164,7 +164,7 @@ async def role_remove_all(ctx, *, role_name: str):
 
     if role is None:
         embed = discord.Embed(
-            title="<:currencypaw:1346100210899619901> Role Not Found",
+            title="<:cancel:1346853536738316339> Role Not Found",
             description=f"{ctx.author.mention} no role named `{role_name}` exists.",
             color=discord.Color.red()
         )
@@ -177,7 +177,7 @@ async def role_remove_all(ctx, *, role_name: str):
 
     if total_humans == 0:
         embed = discord.Embed(
-            title="<:currencypaw:1346100210899619901> No Eligible Users",
+            title="<:cancel:1346853536738316339> No Eligible Users",
             description=f"{ctx.author.mention} no human has the `{role.name}` role.",
             color=discord.Color.orange()
         )
@@ -191,7 +191,7 @@ async def role_remove_all(ctx, *, role_name: str):
     estimated_seconds = estimated_seconds % 60
 
     embed = discord.Embed(
-        title=f"<:currencypaw:1346100210899619901> Removing role `{role.name}` from everyone",
+        title=f"<:success:1346853488738566175> Removing role `{role.name}` from everyone",
         description=(
             f"Total Humans: **{total_humans}**\n"
             f"Estimated Time: **{int(estimated_hours)}h {int(estimated_minutes)}m {int(estimated_seconds)}s**"
@@ -217,7 +217,7 @@ async def role_remove_all(ctx, *, role_name: str):
     time_taken_minutes = (time_taken_seconds % 3600) // 60
     time_taken_seconds = time_taken_seconds % 60
 
-    embed.title = f"<:currencypaw:1346100210899619901> `{role.name}` Role successfully removed from everyone"
+    embed.title = f"<:success:1346853488738566175> `{role.name}` Role successfully removed from everyone"
     embed.description = (
         f"Removed from **{success_count}/{total_humans}** users.\n"
         f"Time Taken: **{time_taken_hours}h {time_taken_minutes}m {time_taken_seconds}s**"
@@ -248,7 +248,7 @@ class RoleListView(View):
         role_list = self.roles[start:end]
 
         embed = discord.Embed(
-            title="<:currencypaw:1346100210899619901> All the Current Server Roles",
+            title="All the Current Server Roles",
             color=discord.Color.blue()
         )
 
@@ -277,7 +277,7 @@ async def list_roles(ctx):
 
     if not roles:
         embed = discord.Embed(
-            title="<:currencypaw:1346100210899619901> No Roles Found",
+            title="<:cancel:1346853536738316339> No Roles Found",
             description="This server has no roles.",
             color=discord.Color.red()
         )
@@ -286,7 +286,7 @@ async def list_roles(ctx):
 
     view = RoleListView(roles)
     first_embed = discord.Embed(
-        title="<:currencypaw:1346100210899619901> All the Current Server Roles",
+        title="<:success:1346853488738566175> All the Current Server Roles",
         color=discord.Color.blue()
     )
 
