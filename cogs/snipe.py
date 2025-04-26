@@ -73,7 +73,7 @@ class Snipe(commands.Cog):
         data_list = [
             f"**Message by {author.mention}**\n{content}"
             for author, content in self.sniped_messages.get(ctx.guild.id, [])
-        
+        ]
         await self.paginate(ctx, data_list, "Deleted Messages")
 
     @commands.command(name="rs")
