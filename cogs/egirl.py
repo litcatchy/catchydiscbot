@@ -6,7 +6,7 @@ import datetime
 
 # --- CONFIGURE ---
 HUGGINGFACE_API_TOKEN = "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"
-HUGGINGFACE_MODEL = "tiiuae/falcon-7b-instruct"  # A free model you can use
+HUGGINGFACE_MODEL = "tiiuae/falcon-7b-instruct"  # Free model to use, make sure it's available
 ALLOWED_CHANNELS = [1359947069472636958, 1339193406269685821]
 MEMORY_LIMIT = 5  # how many past messages bot remembers
 
@@ -30,17 +30,27 @@ class CharacterAI(commands.Cog):
         headers = {"Authorization": f"Bearer {HUGGINGFACE_API_TOKEN}"}
         payload = {"inputs": prompt}
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f"https://api-inference.huggingface.co/models/{HUGGINGFACE_MODEL}",
-                headers=headers,
-                json=payload
-            ) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    return data[0]["generated_text"].strip()
-                else:
-                    return "..."
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"https://api-inference.huggingface.co/models/{HUGGINGFACE_MODEL}",
+                    headers=headers,
+                    json=payload
+                ) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        # Print the full response for debugging
+                        print(f"Response from Huggingface API: {data}")
+                        if "generated_text" in data[0]:
+                            return data[0]["generated_text"].strip()
+                        else:
+                            return "Sorry, I couldn't understand that."
+                    else:
+                        print(f"Failed request: {response.status}")
+                        return "Sorry, there was an error processing your request."
+        except Exception as e:
+            print(f"Error occurred: {e}")
+            return "Sorry, an error occurred."
 
     async def generate_reply(self, channel_id, user_message):
         # Combine memory and new message
