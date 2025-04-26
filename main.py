@@ -62,7 +62,7 @@ async def unload(ctx, extension):
 # Command: Role Help (Shortened List)
 @bot.command(name="rh")
 async def role_help(ctx):
-    embed = discord.Embed(title="<:currencypaw:1346100210899619901> Role Management Commands", color=discord.Color.blue())
+    embed = discord.Embed(title="Role Management Commands", color=discord.Color.blue())
 
     embed.add_field(name="Create a Role", value="`,rc <role name> <color hex>`", inline=False)
     embed.add_field(name="Delete a Role", value="`,rd <role name>`", inline=False)
