@@ -15,10 +15,9 @@ class Boosts(commands.Cog):
         async for msg in channel.history(limit=100):  # Increase limit if needed
             # Ensure the created_at timestamp is timezone-aware
             if msg.created_at >= eighteen_days_ago:
-                # Add the user and the boost date to the list
-                if msg.type == discord.MessageType.add_reaction:
-                    if "boost" in msg.content.lower():
-                        recent_boosters.append((msg.author.name, msg.created_at))
+                # Add the user and the boost date to the list if the message is a boost system message
+                if msg.type == discord.MessageType.premium_subscribe:
+                    recent_boosters.append((msg.author.name, msg.created_at))
         
         # Sort by the most recent boosts first
         recent_boosters.sort(key=lambda x: x[1], reverse=True)
