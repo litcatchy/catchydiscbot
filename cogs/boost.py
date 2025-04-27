@@ -47,14 +47,14 @@ class Boosts(commands.Cog):
         
         # Prepare the message to send top boosters in embed
         embed = discord.Embed(
-            description="Here are the top boosters in the last 14 days:",
+            description="**Top boosters in the last 14 days**",
             color=discord.Color.greyple()  # Grey color for the embed
         )
         
         for index, booster in enumerate(sorted_boosters[:5], start=1):
             embed.add_field(
                 name=f"{index}. {booster['user'].name}",
-                value=f"Boosts: {booster['boost_count']}",
+                value=f"{booster['boost_count']}x boost{'s' if booster['boost_count'] > 1 else ''}",
                 inline=False
             )
         
