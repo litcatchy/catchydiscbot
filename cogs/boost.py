@@ -7,20 +7,23 @@ class Boosts(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    @commands.Cog.listener()
+    async def on_member_update(self, before, after):
+        """Listen for when a member boosts."""
+        if before.premium_since != after.premium_since and after.premium_since:
+            # Member boosted, send thank you message
+            channel = after.guild.system_channel  # or any channel you'd like to use
+            await self.send_thank_you_message(after, channel)
+
     @commands.command(name="rb")
     async def rb(self, ctx):
         """Command to display the top boosters."""
         channel = ctx.channel
-        # Mention the user who boosted and thank them
-        user = ctx.author
-        await self.send_thank_you_message(user, channel)
-        # Send the top boosters message after thanking
         await self.send_top_boosters(channel)
 
     async def send_thank_you_message(self, user, channel):
-        """Sends a thank you message to the user who boosted."""
+        """Sends a thank you message when the user boosts."""
         thank_you_embed = discord.Embed(
-            title="Thank You for Boosting!",
             description=f"<@{user.id}> thank you so much for boosting bby! We love you so much. <:000:1358756048982249574>\n\n"
                         f"-# Perks included: hoisted role, cute icon & image perms!",
             color=discord.Color.greyple()  # Grey color for the embed
@@ -33,7 +36,6 @@ class Boosts(commands.Cog):
         
         if not boosters:
             embed = discord.Embed(
-                title="No Boosters Found",
                 description="No boosters found in the last 14 days.",
                 color=discord.Color.greyple()  # Grey color for the embed
             )
@@ -45,7 +47,6 @@ class Boosts(commands.Cog):
         
         # Prepare the message to send top boosters in embed
         embed = discord.Embed(
-            title="Top Boosters in the Last 14 Days",
             description="Here are the top boosters in the last 14 days:",
             color=discord.Color.greyple()  # Grey color for the embed
         )
