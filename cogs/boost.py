@@ -47,5 +47,10 @@ class Boosts(commands.Cog):
             await channel.send(embed=thank_you_embed)
             await self.send_top_boosters(channel)
 
-def setup(bot):
-    bot.add_cog(Boosts(bot))
+# Remove this function from here; it's unnecessary
+# async def setup(bot):
+#     bot.add_cog(Boosts(bot))
+
+# Instead, modify the cog to add itself during startup
+async def setup(bot):
+    await bot.add_cog(Boosts(bot))
