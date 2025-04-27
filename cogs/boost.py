@@ -48,13 +48,13 @@ class Boosts(commands.Cog):
         eighteen_days_ago = datetime.now() - timedelta(days=18)
         boosters = []
 
+        # Go through the messages in the channel to detect boosts
         async for msg in channel.history(limit=100):
-            # Check if the message is from a boost (premium_subscribe type)
-            if msg.type == discord.MessageType.premium_subscribe:
+            if msg.author.premium_since:  # Check if the user boosted
                 if msg.created_at > eighteen_days_ago:
                     user = msg.author
                     # Count the number of boosts by this user
-                    boost_count = sum(1 for m in await channel.history(limit=100).flatten() if m.type == discord.MessageType.premium_subscribe and m.author == user)
+                    boost_count = sum(1 for m in await channel.history(limit=100).flatten() if m.author == user and m.author.premium_since)
                     boosters.append({'name': user.name, 'boosts': boost_count})
 
         return boosters
