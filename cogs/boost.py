@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from datetime import datetime, timedelta
+import pytz
 
 class Boosts(commands.Cog):
     def __init__(self, bot):
@@ -45,7 +46,9 @@ class Boosts(commands.Cog):
             await channel.send("No recent boosters found within the last 18 days.")
 
     async def fetch_recent_boosters(self, channel):
-        eighteen_days_ago = datetime.now() - timedelta(days=18)
+        # Make `eighteen_days_ago` timezone-aware
+        eighteen_days_ago = discord.utils.utcnow() - timedelta(days=18)
+        
         boosters = []
 
         # Go through the messages in the channel to detect boosts
