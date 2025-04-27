@@ -1,55 +1,73 @@
+
 import discord
 from discord.ext import commands
 from datetime import datetime, timedelta
-from discord.utils import utcnow
 
 class Boosts(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    async def fetch_recent_boosters(self, channel):
-        # Get the current UTC time (timezone-aware)
-        eighteen_days_ago = utcnow() - timedelta(days=18)
-        
-        recent_boosters = []
-        async for msg in channel.history(limit=100):  # Increase limit if needed
-            # Ensure the created_at timestamp is timezone-aware
-            if msg.created_at >= eighteen_days_ago:
-                # Add the user and the boost date to the list if the message is a boost system message
-                if msg.type == discord.MessageType.premium_subscribe:
-                    recent_boosters.append((msg.author.name, msg.created_at))
-        
-        # Sort by the most recent boosts first
-        recent_boosters.sort(key=lambda x: x[1], reverse=True)
-        return recent_boosters[:5]  # Get top 5 recent boosters
+    # Send the thank you embed when a user boosts
+    async def send_thank_you_embed(self, channel, user):
+        embed = discord.Embed(
+            description=f"<@{user.id}> thank you so much for boosting bby! we love you so much. <:000:1358756048982249574>\n\n-# perks included: hoisted role, cute icon & image perms!",
+            color=discord.Color.gray()
+        )
+        await channel.send(embed=embed)
 
+    # Fetch the recent boosters (from the last 18 days)
+    async def fetch_recent_boosters(self, channel):
+        boosters = []
+        eighteen_days_ago = datetime.utcnow() - timedelta(days=18)
+
+        # Fetch the last 100 messages in the channel
+        async for msg in channel.history(limit=100):
+            if msg.type == discord.MessageType.premium_guild_subscription:  # Corrected here
+                # Check if the message is within the last 18 days
+                if msg.created_at > eighteen_days_ago:
+                    boosters.append(msg.author)
+
+        return boosters
+
+    # Send the top 5 recent boosters
     async def send_top_boosters(self, channel):
         boosters = await self.fetch_recent_boosters(channel)
+        boosters = list(set(boosters))  # Remove duplicates
+
+        # Sort the boosters based on how recent their boost is
+        boosters.sort(key=lambda x: x.joined_at, reverse=True)
+
+        # Generate the message for top boosters
         top_boosters_message = "Top 5 recent boosters:\n"
-        
-        for i, (name, _) in enumerate(boosters, 1):
-            top_boosters_message += f"{i}. {name} x{boosters.count(name)} boost(s)\n"
+        for i, booster in enumerate(boosters[:5]):
+            # Count how many times each booster has boosted
+            boost_count = boosters.count(booster)
+            top_boosters_message += f"{i+1}. {booster.name} x{boost_count} boost{'s' if boost_count > 1 else ''}\n"
 
         await channel.send(top_boosters_message)
 
-    @commands.command(name='rb')
-    async def recent_boosters(self, ctx):
-        channel = ctx.guild.get_channel(1349127678694920202)  # Replace with your actual channel ID
-        await self.send_top_boosters(channel)
-
+    # Command to handle boost notifications and show the recent boosters
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
-        # Check if a user boosted
-        if after.premium_since != before.premium_since and after.premium_since is not None:
-            channel = self.bot.get_channel(1349127678694920202)  # Channel where boost thank you message will be sent
-            thank_you_embed = discord.Embed(description=f"<@{after.id}> thank you so much for boosting bby! We love you so much. <:000:1358756048982249574>\n\n-# perks included: hoisted role, cute icon & image perms!", color=discord.Color.greyple())
-            await channel.send(embed=thank_you_embed)
-            await self.send_top_boosters(channel)
+        # Check if the member boosted the server
+        if before.premium_since is None and after.premium_since is not None:
+            boost_channel = self.bot.get_channel(1349127678694920202)  # Your channel for boost messages
+            thank_you_channel = self.bot.get_channel(1349127678694920202)  # Same or different channel for thank you message
 
-# Remove this function from here; it's unnecessary
-# async def setup(bot):
-#     bot.add_cog(Boosts(bot))
+            # Send thank you message
+            await self.send_thank_you_embed(thank_you_channel, after)
 
-# Instead, modify the cog to add itself during startup
-async def setup(bot):
-    await bot.add_cog(Boosts(bot))
+            # Send top 5 boosters message
+            await self.send_top_boosters(boost_channel)
+
+    # Command to check the recent boosters manually
+    @commands.command(name='rb')
+    async def recent_boosters(self, ctx):
+        # Only allow this command in specific channels
+        if ctx.channel.id != 1349127678694920202:
+            return
+
+        await self.send_top_boosters(ctx.channel)
+
+def setup(bot):
+    bot.add_cog(Boosts(bot))
