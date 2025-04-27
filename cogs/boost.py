@@ -54,5 +54,6 @@ class Boosts(commands.Cog):
         return boosters
 
 
-# In your main.py, ensure to load this cog like this:
-# bot.add_cog(Boosts(bot))
+# The setup function is required for loading the cog correctly in main.py
+async def setup(bot):
+    await bot.add_cog(Boosts(bot))
