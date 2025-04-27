@@ -1,67 +1,58 @@
 import discord
 from discord.ext import commands
-from datetime import datetime, timedelta
+import datetime
 import pytz
 
 class Boosts(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.Cog.listener()
-    async def on_guild_member_update(self, before, after):
-        # Check if the user boosted
-        if before.premium_since != after.premium_since:
-            if after.premium_since:  # If the user just boosted
-                channel = after.guild.get_channel(1349127678694920202)
-                # Thank you embed message
-                embed = discord.Embed(
-                    description=f"<@{after.id}> thank you so much for boosting bby! we love you so much. <:000:1358756048982249574>\n\n-# perks included: hoisted role, cute icon & image perms!",
-                    color=discord.Color.gray()
-                )
-                await channel.send(embed=embed)
-                # Send the top 5 recent boosters message
-                await self.send_top_boosters(channel)
-
-    @commands.command()
+    @commands.command(name="rb")
     async def rb(self, ctx):
-        # Command to show recent boosters
+        """Command to display the top boosters."""
         channel = ctx.channel
         await self.send_top_boosters(channel)
 
     async def send_top_boosters(self, channel):
-        # Fetch recent boost messages and top boosters
+        """Sends the top boosters to the channel."""
         boosters = await self.fetch_recent_boosters(channel)
+        
+        if not boosters:
+            await channel.send("No boosters found in the last 14 days.")
+            return
 
-        # Send the top boosters message
-        top_boosters_embed = discord.Embed(
-            title="Top 5 Recent Boosters",
-            color=discord.Color.blue()
-        )
-
-        if boosters:
-            for i, booster in enumerate(boosters[:5]):
-                top_boosters_embed.add_field(name=f"{i+1}. {booster['name']}", value=f"x{booster['boosts']} boost", inline=False)
-            await channel.send(embed=top_boosters_embed)
-        else:
-            await channel.send("No recent boosters found within the last 18 days.")
+        # Sort boosters by the number of boosts (assuming boosters is a list of users)
+        # You can add more complex sorting here if necessary
+        sorted_boosters = sorted(boosters, key=lambda user: user['boost_count'], reverse=True)
+        
+        # Prepare the message to send top boosters
+        message = "Top Boosters in the last 14 days:\n"
+        for index, booster in enumerate(sorted_boosters[:5], start=1):
+            message += f"{index}. {booster['user'].name} - Boosts: {booster['boost_count']}\n"
+        
+        await channel.send(message)
 
     async def fetch_recent_boosters(self, channel):
-        # Make `eighteen_days_ago` timezone-aware
-        eighteen_days_ago = discord.utils.utcnow() - timedelta(days=18)
-        
+        """Fetches the users who boosted in the last 14 days."""
         boosters = []
+        now = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+        fourteen_days_ago = now - datetime.timedelta(days=14)
 
-        # Go through the messages in the channel to detect boosts
+        # Iterate through the message history
         async for msg in channel.history(limit=100):
-            if msg.author.premium_since:  # Check if the user boosted
-                if msg.created_at > eighteen_days_ago:
-                    user = msg.author
-                    # Count the number of boosts by this user
-                    boost_count = sum(1 for m in await channel.history(limit=100).flatten() if m.author == user and m.author.premium_since)
-                    boosters.append({'name': user.name, 'boosts': boost_count})
+            # Only consider messages from the last 14 days
+            if msg.created_at > fourteen_days_ago:
+                # Check if the user has boosted the server
+                if msg.author.premium_since:
+                    # Find if the user is already in the list, and if so, increment their boost count
+                    existing_booster = next((b for b in boosters if b['user'] == msg.author), None)
+                    if existing_booster:
+                        existing_booster['boost_count'] += 1
+                    else:
+                        boosters.append({'user': msg.author, 'boost_count': 1})
 
         return boosters
 
 
-async def setup(bot):
-    await bot.add_cog(Boosts(bot))  # Ensure add_cog() is awaited correctly
+# In your main.py, ensure to load this cog like this:
+# bot.add_cog(Boosts(bot))
