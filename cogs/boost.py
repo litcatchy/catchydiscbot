@@ -42,8 +42,8 @@ class Boosts(commands.Cog):
         async for msg in channel.history(limit=100):
             # Only consider messages from the last 14 days
             if msg.created_at > fourteen_days_ago:
-                # Check if the user has boosted the server
-                if msg.author.premium_since:
+                # Check if the user has boosted the server (i.e., is a member with premium_since attribute)
+                if isinstance(msg.author, discord.Member) and msg.author.premium_since:
                     # Find if the user is already in the list, and if so, increment their boost count
                     existing_booster = next((b for b in boosters if b['user'] == msg.author), None)
                     if existing_booster:
