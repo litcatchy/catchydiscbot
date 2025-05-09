@@ -118,9 +118,7 @@ class VCControl(commands.Cog):
 
         embed = discord.Embed(
             title="Voice Channel Controls",
-            embed = discord.Embed(
-    title="Voice Channel Controls",
-    description="""Use the buttons below to manage your voice channel.
+            description="""Use the buttons below to manage your voice channel.
                          
 Buttons:
 Lock - Lock your voice channel            
@@ -133,18 +131,18 @@ Decrease - Decrease your voice channel's user limit
 Claim - Claim your voice channel
 Transfer - Transfer ownership of your voice channel
 Delete - Delete your voice channel""",
-    color=discord.Color.blurple()
-)
-view = VCControlView(self.bot)
-self.panel_message = await channel.send(embed=embed, view=view)
+            color=discord.Color.blurple()
+        )
+        view = VCControlView(self.bot)
+        self.panel_message = await channel.send(embed=embed, view=view)
 
-@send_panel.before_loop
-async def before_panel(self):
-    await self.bot.wait_until_ready()
+    @send_panel.before_loop
+    async def before_panel(self):
+        await self.bot.wait_until_ready()
+
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
         if after.channel and after.channel.id == 1364639518279467079:  # Check if user joins the special channel
-            # Create a new VC for the user
             category = self.bot.get_channel(1359208824497639424)
             if category:
                 new_vc = await member.guild.create_voice_channel(
@@ -152,8 +150,6 @@ async def before_panel(self):
                 await new_vc.set_permissions(member, connect=True)
                 await member.move_to(new_vc)
                 await self.send_panel()  # Ensure panel is refreshed
-
-                # Delete the VC after 10 minutes if empty
                 await self.delete_inactive_vc(new_vc)
 
     async def delete_inactive_vc(self, vc):
