@@ -118,16 +118,29 @@ class VCControl(commands.Cog):
 
         embed = discord.Embed(
             title="Voice Channel Controls",
-            description="Use the buttons below to manage your voice channel.",
-            color=discord.Color.blurple()
-        )
-        view = VCControlView(self.bot)
-        self.panel_message = await channel.send(embed=embed, view=view)
+            embed = discord.Embed(
+    title="Voice Channel Controls",
+    description="""Use the buttons below to manage your voice channel.
+                         
+Buttons:
+Lock - Lock your voice channel            
+Unlock - Unlock your voice channel
+Hide - Hide your voice channel
+Reveal - Reveal your voice channel
+Edit - Rename your voice channel
+Increase - Increase your voice channel's user limit
+Decrease - Decrease your voice channel's user limit
+Claim - Claim your voice channel
+Transfer - Transfer ownership of your voice channel
+Delete - Delete your voice channel""",
+    color=discord.Color.blurple()
+)
+view = VCControlView(self.bot)
+self.panel_message = await channel.send(embed=embed, view=view)
 
-    @send_panel.before_loop
-    async def before_panel(self):
-        await self.bot.wait_until_ready()
-
+@send_panel.before_loop
+async def before_panel(self):
+    await self.bot.wait_until_ready()
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
         if after.channel and after.channel.id == 1364639518279467079:  # Check if user joins the special channel
