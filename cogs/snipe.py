@@ -118,7 +118,7 @@ class Snipe(commands.Cog):
 
         # Clear snipes and react
         self.sniped_messages[ctx.guild.id].clear()
-        await ctx.message.add_reaction("✅")
+        await ctx.message.add_reaction("<:success:1346853488738566175>")
 
 async def setup(bot):
     await bot.add_cog(Snipe(bot))
