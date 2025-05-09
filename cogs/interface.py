@@ -1,4 +1,5 @@
-import discord from discord.ext import commands, tasks import asyncio
+import discord 
+from discord.ext import commands, tasks import asyncio
 
 VC_CATEGORY_ID = 1359208824497639424 J2C_CHANNEL_ID = 1364639518279467079 PANEL_CHANNEL_ID = 1362754109454680225  # Replace with your text panel channel INACTIVITY_TIMEOUT = 600  # 10 minutes
 
