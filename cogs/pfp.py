@@ -7,15 +7,27 @@ from bs4 import BeautifulSoup
 class PFPDrop(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.channel_id = 1362801674560737462
+        self.channel_id = 1362801674560737462  # Replace with your target channel ID
         self.search_queries = [
             "egirl pfp site:pinterest.com",
+            "emo egirl pfp site:pinterest.com",
             "anime aesthetic pfp site:pinterest.com",
             "dark anime girl pfp site:pinterest.com",
             "emo aesthetic pfp site:pinterest.com",
-            "bloody aesthetic girl pfp site:pinterest.com",
+            "bloody girl pfp site:pinterest.com",
             "money aesthetic pfp site:pinterest.com",
             "cat girl pfp anime site:pinterest.com",
+            "emo eboy pfp aesthetic site:pinterest.com",
+            "dark emo boy pfp site:pinterest.com",
+            "femboy aesthetic pfp site:pinterest.com",
+            "femboy pfp discord site:pinterest.com",
+            "discord aesthetic egirl pfp site:pinterest.com",
+            "discord aesthetic eboy pfp site:pinterest.com",
+            "egirls trending pfp discord site:pinterest.com",
+            "eboys trending pfp discord site:pinterest.com",
+            "money pfp discord site:pinterest.com",
+            "yandere pfp discord site:pinterest.com",
+            "hot egirl pfp discord site:pinterest.com"
         ]
         self.send_pfps.start()
 
@@ -53,7 +65,7 @@ class PFPDrop(commands.Cog):
                 html = await response.text()
                 soup = BeautifulSoup(html, "html.parser")
                 image_elements = soup.select("a.iusc")
-                
+
                 results = []
                 for tag in image_elements:
                     m = tag.get("m")
