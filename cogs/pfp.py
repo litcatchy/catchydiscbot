@@ -2,14 +2,13 @@ import discord
 from discord.ext import commands, tasks
 import random
 import aiohttp
-from bs4 import BeautifulSoup
-import asyncio
+import io
 
-class PFPDrop(commands.Cog):
+class PFPSpam(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.channel_id = 1362801674560737462  # Your channel ID
-        self.search_queries = [
+        self.channel_id = 1362801674560737462
+        self.query_list = [
             "femboy anime aesthetic pfp site:pinterest.com",
             "goth girl aesthetic pfp site:pinterest.com",
             "dark romance aesthetic pfp site:pinterest.com",
@@ -17,17 +16,41 @@ class PFPDrop(commands.Cog):
             "yandere anime girl pfp site:pinterest.com",
             "emo aesthetic anime pfp site:pinterest.com",
             "alt aesthetic anime pfp site:pinterest.com",
-            "money aesthetic pfp site:pinterest.com",
+            "money aesthetic anime pfp site:pinterest.com",
             "crazy anime girl aesthetic pfp site:pinterest.com",
+            "tied girl aesthetic pfp site:pinterest.com",
             "soft bloody cute anime pfp site:pinterest.com",
             "egirl aesthetic pfp discord site:pinterest.com",
             "eboy aesthetic pfp discord site:pinterest.com",
-            "cat girl pfp site:pinterest.com"
+            "cat girl aesthetic pfp site:pinterest.com"
         ]
         self.send_pfps.start()
 
     def cog_unload(self):
         self.send_pfps.cancel()
+
+    async def fetch_images(self, query, count=5):
+        url = f"https://www.pinterest.com/search/pins/?q={query.replace(' ', '%20')}"
+        headers = {
+            "User-Agent": "Mozilla/5.0"
+        }
+        images = []
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.get(url, headers=headers) as response:
+                    text = await response.text()
+                    urls = list(set([
+                        line.split('"')[0]
+                        for line in text.split("https://i.pinimg.com/")[1:]
+                        if line.startswith("originals") or line.startswith("736x")
+                    ]))
+                    for u in urls:
+                        images.append(f"https://i.pinimg.com/{u}")
+                        if len(images) == count:
+                            break
+            except:
+                pass
+        return images
 
     @tasks.loop(minutes=5)
     async def send_pfps(self):
@@ -35,49 +58,34 @@ class PFPDrop(commands.Cog):
         if not channel:
             return
 
+        query = random.choice(self.query_list)
         image_urls = []
-        retries = 0
-        while not image_urls and retries < 5:
-            query = random.choice(self.search_queries)
-            image_urls = await self.fetch_images(query)
-            retries += 1
-            if not image_urls:
-                await asyncio.sleep(2)
 
-        if image_urls:
-            selected = random.sample(image_urls, min(5, len(image_urls)))
-            embed = discord.Embed(color=discord.Color.dark_purple())
-            for idx, url in enumerate(selected, start=1):
-                embed.add_field(name=f"PFP {idx}", value=url, inline=False)
-            await channel.send(embed=embed)
+        while len(image_urls) < 5:
+            results = await self.fetch_images(query)
+            for img in results:
+                if img not in image_urls:
+                    image_urls.append(img)
+                if len(image_urls) == 5:
+                    break
+            if len(image_urls) < 5:
+                query = random.choice(self.query_list)
 
-    @send_pfps.before_loop
-    async def before_pfps(self):
-        await self.bot.wait_until_ready()
-
-    async def fetch_images(self, query):
-        headers = {"User-Agent": "Mozilla/5.0"}
-        search_url = f"https://www.bing.com/images/search?q={query.replace(' ', '+')}&form=HDRSC2"
-
+        files = []
         async with aiohttp.ClientSession() as session:
-            async with session.get(search_url, headers=headers) as response:
-                if response.status != 200:
-                    return []
+            for url in image_urls:
+                try:
+                    async with session.get(url) as resp:
+                        if resp.status == 200:
+                            img_bytes = await resp.read()
+                            filename = url.split("/")[-1].split("?")[0]
+                            files.append(discord.File(io.BytesIO(img_bytes), filename=filename))
+                except:
+                    continue
 
-                html = await response.text()
-                soup = BeautifulSoup(html, "html.parser")
-                image_elements = soup.select("a.iusc")
-
-                results = []
-                for tag in image_elements:
-                    m = tag.get("m")
-                    if m and '"murl":"' in m:
-                        start = m.find('"murl":"') + len('"murl":"')
-                        end = m.find('"', start)
-                        image_url = m[start:end].replace("\\", "")
-                        if any(ext in image_url for ext in [".jpg", ".jpeg", ".png"]):
-                            results.append(image_url)
-                return results
+        if files:
+            await channel.send(files=files)
 
 async def setup(bot):
-    await bot.add_cog(PFPDrop(bot))
+    await bot.add_cog(PFPSpam(bot))
+    
