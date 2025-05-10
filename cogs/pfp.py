@@ -3,6 +3,7 @@ from discord.ext import commands, tasks
 import random
 import aiohttp
 import io
+from bs4 import BeautifulSoup
 
 class PFPSpam(commands.Cog):
     def __init__(self, bot):
@@ -18,10 +19,9 @@ class PFPSpam(commands.Cog):
             "alt aesthetic anime pfp site:pinterest.com",
             "money aesthetic anime pfp site:pinterest.com",
             "crazy anime girl aesthetic pfp site:pinterest.com",
-            "tied girl aesthetic pfp site:pinterest.com",
             "soft bloody cute anime pfp site:pinterest.com",
-            "egirl aesthetic pfp discord site:pinterest.com",
-            "eboy aesthetic pfp discord site:pinterest.com",
+            "normal egirl aesthetic pfp discord site:pinterest.com",
+            "normal eboy aesthetic pfp discord site:pinterest.com",
             "cat girl aesthetic pfp site:pinterest.com"
         ]
         self.send_pfps.start()
@@ -39,17 +39,15 @@ class PFPSpam(commands.Cog):
             try:
                 async with session.get(url, headers=headers) as response:
                     text = await response.text()
-                    urls = list(set([
-                        line.split('"')[0]
-                        for line in text.split("https://i.pinimg.com/")[1:]
-                        if line.startswith("originals") or line.startswith("736x")
-                    ]))
-                    for u in urls:
-                        images.append(f"https://i.pinimg.com/{u}")
+                    soup = BeautifulSoup(text, 'html.parser')
+                    pins = soup.find_all('img', {'srcset': True})
+                    for pin in pins:
+                        img_url = pin['srcset'].split(',')[0].split(' ')[0]  # Get the largest image
+                        images.append(img_url)
                         if len(images) == count:
                             break
-            except:
-                pass
+            except Exception as e:
+                print(f"Error fetching images: {e}")
         return images
 
     @tasks.loop(minutes=5)
@@ -88,4 +86,3 @@ class PFPSpam(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(PFPSpam(bot))
-    
