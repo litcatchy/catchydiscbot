@@ -12,7 +12,7 @@ class PFPDrop(commands.Cog):
         self.search_queries = [
             "femboy anime aesthetic pfp site:pinterest.com",
             "goth girl aesthetic pfp site:pinterest.com",
-            "dark romance aesthetic pfp site:pinterest.com",
+            "hello kitty girl aesthetic pfp site:pinterest.com",
             "aesthetic girl tied up pfp site:pinterest.com",
             "yandere anime girl pfp site:pinterest.com",
             "emo aesthetic anime pfp site:pinterest.com",
