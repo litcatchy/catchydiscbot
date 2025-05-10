@@ -3,31 +3,26 @@ from discord.ext import commands, tasks
 import random
 import aiohttp
 from bs4 import BeautifulSoup
+import asyncio
 
 class PFPDrop(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.channel_id = 1362801674560737462  # Replace with your target channel ID
+        self.channel_id = 1362801674560737462  # Your channel ID
         self.search_queries = [
-            "egirl pfp site:pinterest.com",
-            "emo egirl pfp site:pinterest.com",
-            "anime aesthetic pfp site:pinterest.com",
-            "dark anime girl pfp site:pinterest.com",
-            "emo aesthetic pfp site:pinterest.com",
-            "bloody girl pfp site:pinterest.com",
+            "femboy anime aesthetic pfp site:pinterest.com",
+            "goth girl aesthetic pfp site:pinterest.com",
+            "dark romance aesthetic pfp site:pinterest.com",
+            "aesthetic girl tied up pfp site:pinterest.com",
+            "yandere anime girl pfp site:pinterest.com",
+            "emo aesthetic anime pfp site:pinterest.com",
+            "alt aesthetic anime pfp site:pinterest.com",
             "money aesthetic pfp site:pinterest.com",
-            "cat girl pfp anime site:pinterest.com",
-            "emo eboy pfp aesthetic site:pinterest.com",
-            "dark emo boy pfp site:pinterest.com",
-            "femboy aesthetic pfp site:pinterest.com",
-            "femboy pfp discord site:pinterest.com",
-            "discord aesthetic egirl pfp site:pinterest.com",
-            "discord aesthetic eboy pfp site:pinterest.com",
-            "egirls trending pfp discord site:pinterest.com",
-            "eboys trending pfp discord site:pinterest.com",
-            "money pfp discord site:pinterest.com",
-            "yandere pfp discord site:pinterest.com",
-            "hot egirl pfp discord site:pinterest.com"
+            "crazy anime girl aesthetic pfp site:pinterest.com",
+            "soft bloody cute anime pfp site:pinterest.com",
+            "egirl aesthetic pfp discord site:pinterest.com",
+            "eboy aesthetic pfp discord site:pinterest.com",
+            "cat girl pfp site:pinterest.com"
         ]
         self.send_pfps.start()
 
@@ -40,21 +35,28 @@ class PFPDrop(commands.Cog):
         if not channel:
             return
 
-        query = random.choice(self.search_queries)
-        image_urls = await self.fetch_images(query)
+        image_urls = []
+        retries = 0
+        while not image_urls and retries < 5:
+            query = random.choice(self.search_queries)
+            image_urls = await self.fetch_images(query)
+            retries += 1
+            if not image_urls:
+                await asyncio.sleep(2)
 
         if image_urls:
-            for url in random.sample(image_urls, min(5, len(image_urls))):
-                await channel.send(url)
+            selected = random.sample(image_urls, min(5, len(image_urls)))
+            embed = discord.Embed(color=discord.Color.dark_purple())
+            for idx, url in enumerate(selected, start=1):
+                embed.add_field(name=f"PFP {idx}", value=url, inline=False)
+            await channel.send(embed=embed)
 
     @send_pfps.before_loop
     async def before_pfps(self):
         await self.bot.wait_until_ready()
 
     async def fetch_images(self, query):
-        headers = {
-            "User-Agent": "Mozilla/5.0"
-        }
+        headers = {"User-Agent": "Mozilla/5.0"}
         search_url = f"https://www.bing.com/images/search?q={query.replace(' ', '+')}&form=HDRSC2"
 
         async with aiohttp.ClientSession() as session:
