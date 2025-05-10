@@ -1,4 +1,5 @@
 discord.py
 asyncio
 pytz
-pip install beautifulsoup4 aiohttp
+aiohttp
+beautifulsoup4
