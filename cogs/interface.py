@@ -192,5 +192,8 @@ Delete - Delete your voice channel""",
         self.panel_message = await channel.send(embed=embed, view=view)
 
     @send_panel.before_loop
-    async def setup(bot):
+    async def before_panel(self):
+        await self.bot.wait_until_ready()
+
+async def setup(bot):
     await bot.add_cog(VCControl(bot))
