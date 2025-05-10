@@ -20,8 +20,8 @@ class PFPSpam(commands.Cog):
             "money aesthetic anime pfp site:pinterest.com",
             "crazy anime girl aesthetic pfp site:pinterest.com",
             "soft bloody cute anime pfp site:pinterest.com",
-            "normal egirl aesthetic pfp discord site:pinterest.com",
-            "normal eboy aesthetic pfp discord site:pinterest.com",
+            "egirl aesthetic pfp discord site:pinterest.com",
+            "eboy aesthetic pfp discord site:pinterest.com",
             "cat girl aesthetic pfp site:pinterest.com"
         ]
         self.send_pfps.start()
