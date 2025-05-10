@@ -184,34 +184,33 @@ Increase - Increase your voice channel's user limit
 Decrease - Decrease your voice channel's user limit
 Claim - Claim your voice channel
 Transfer - Transfer ownership of your voice channel
-Disconnect - Disconnect a user from your voice channel
-Delete - Delete your voice channel""",
-            color=discord.Color.blurple()
+Disconnect - Disconnect a member from your voice channel
+Delete - Delete your voice channel"""
         )
-        view = VCControlView(self.bot)
-        self.panel_message = await channel.send(embed=embed, view=view)
-
-    @send_panel.before_loop
-    async def before_panel(self):
-        await self.bot.wait_until_ready()
+        embed.set_footer(text="This panel will be sent again after the bot restarts.")
+        self.panel_message = await channel.send(embed=embed, view=VCControlView(self.bot))
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
-        if after.channel and after.channel.id == 1364639518279467079:
-            category = self.bot.get_channel(1359208824497639424)
-            if category:
-                new_vc = await member.guild.create_voice_channel(
-                    f"{member.name}'s VC", category=category, topic=str(member.id))
-                await new_vc.set_permissions(member, connect=True)
-                await member.move_to(new_vc)
-                await self.send_panel()
-                await self.delete_inactive_vc(new_vc)
+        if after.channel and after.channel.id == 1364639518279467079:  # Specific voice channel
+            guild = member.guild
+            category = discord.utils.get(guild.categories, id=1359208824497639424)
+            if category is None:
+                return
 
-    async def delete_inactive_vc(self, vc):
-        await asyncio.sleep(600)
-        if len(vc.members) == 0:
-            await vc.delete()
+            # Create a new voice channel with user's name
+            new_channel = await guild.create_voice_channel(f"{member.name}'s VC", category=category)
 
-async def setup(bot):
-    await bot.add_cog(VCControl(bot))
-    
+            # Set permissions so only the member can join the channel
+            overwrite = discord.PermissionOverwrite()
+            overwrite.connect = True
+            await new_channel.set_permissions(member, overwrite=overwrite)
+
+            # Send a message to let the user know their channel has been created
+            await member.send(f"Your private voice channel, `{new_channel.name}`, has been created")
+
+            # Move the member to the new channel
+            await member.move_to(new_channel)
+
+def setup(bot):
+    bot.add_cog(VCControl(bot))
