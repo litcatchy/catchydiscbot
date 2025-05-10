@@ -3,11 +3,12 @@ from discord.ext import commands, tasks
 import random
 import aiohttp
 from bs4 import BeautifulSoup
+import io
 
 class PFPDrop(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.channel_id = 1362801674560737462
+        self.channel_id = 1362801674560737462  # Your channel ID
         self.search_queries = [
             "femboy anime aesthetic pfp site:pinterest.com",
             "goth girl aesthetic pfp site:pinterest.com",
@@ -39,30 +40,27 @@ class PFPDrop(commands.Cog):
 
         if image_urls:
             selected_urls = random.sample(image_urls, min(4, len(image_urls)))
-            files = []
-
             async with aiohttp.ClientSession() as session:
+                files = []
                 for url in selected_urls:
                     try:
                         async with session.get(url) as resp:
                             if resp.status == 200:
                                 img_data = await resp.read()
                                 filename = url.split("/")[-1].split("?")[0]
-                                files.append(discord.File(fp=io.BytesIO(img_data), filename=filename))
-                    except Exception:
+                                files.append(discord.File(io.BytesIO(img_data), filename=filename))
+                    except:
                         continue
 
-            if files:
-                await channel.send(files=files)
+                if files:
+                    await channel.send(files=files)
 
     @send_pfps.before_loop
     async def before_pfps(self):
         await self.bot.wait_until_ready()
 
     async def fetch_images(self, query):
-        headers = {
-            "User-Agent": "Mozilla/5.0"
-        }
+        headers = {"User-Agent": "Mozilla/5.0"}
         search_url = f"https://www.bing.com/images/search?q={query.replace(' ', '+')}&form=HDRSC2"
 
         async with aiohttp.ClientSession() as session:
