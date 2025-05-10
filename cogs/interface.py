@@ -214,3 +214,7 @@ Protect - Toggle VC deletion protection""",
                     f"{member.name}'s VC", category=category)
                 await new_vc.set_permissions(member, connect=True)
                 await member.move_to(new_vc)
+
+# Add the setup function
+async def setup(bot):
+    await bot.add_cog(VCControl(bot))
