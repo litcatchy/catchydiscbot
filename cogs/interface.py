@@ -6,6 +6,8 @@ class VCControlView(discord.ui.View):
     def __init__(self, bot):
         super().__init__(timeout=None)
         self.bot = bot
+        self.owners = {}  # Track VC owners manually
+        self.protected_vcs = set()  # Track protected VCs
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:  
         if not interaction.user.voice or not interaction.user.voice.channel:  
@@ -70,72 +72,90 @@ class VCControlView(discord.ui.View):
     @discord.ui.button(label="Claim", style=discord.ButtonStyle.secondary, custom_id="vc_claim")  
     async def claim_vc(self, interaction: discord.Interaction, button: discord.ui.Button):  
         vc = interaction.user.voice.channel  
-        if vc.members and vc.members[0] != interaction.user:  
-            await vc.edit(name=f"{interaction.user.name}'s VC")  
-            await interaction.response.send_message("You claimed the voice channel.", ephemeral=True)  
-        else:  
-            await interaction.response.send_message("You're already the first member in this VC.", ephemeral=True)  
+        await vc.edit(name=f"{interaction.user.name}'s VC")  
+        VCControlView.owners[vc.id] = interaction.user.id
+        await interaction.response.send_message("You claimed the voice channel.", ephemeral=True)
 
     @discord.ui.button(label="Transfer", style=discord.ButtonStyle.secondary, custom_id="vc_transfer")  
     async def transfer_vc(self, interaction: discord.Interaction, button: discord.ui.Button):  
         vc = interaction.user.voice.channel
-        if vc.owner != interaction.user:
+        if VCControlView.owners.get(vc.id) != interaction.user.id:
             await interaction.response.send_message("You must be the owner of the voice channel to transfer ownership.", ephemeral=True)
             return
 
-        # List members in the VC
-        members = [member.name for member in vc.members]
-        options = [discord.SelectOption(label=member, value=member) for member in members]
+        members = [member for member in vc.members if member != interaction.user]
+        if not members:
+            await interaction.response.send_message("No one else is in the VC to transfer ownership to.", ephemeral=True)
+            return
+
+        options = [discord.SelectOption(label=member.name, value=str(member.id)) for member in members]
 
         select = discord.ui.Select(
             placeholder="Choose a person to transfer ownership",
-            options=options,
-            custom_id="transfer_select"
+            options=options
         )
 
         async def transfer_callback(interaction: discord.Interaction):
-            new_owner = interaction.data['values'][0]
-            member = discord.utils.get(vc.members, name=new_owner)
-            await vc.edit(owner=member)
-            await interaction.response.send_message(f"Ownership of the VC has been transferred to {new_owner}.", ephemeral=True)
+            new_owner_id = int(interaction.data['values'][0])
+            VCControlView.owners[vc.id] = new_owner_id
+            await interaction.response.send_message("Ownership transferred successfully.", ephemeral=True)
 
         select.callback = transfer_callback
         await interaction.response.send_message("Please select who to transfer ownership to.", ephemeral=True, view=discord.ui.View(select))
 
     @discord.ui.button(label="Disconnect", style=discord.ButtonStyle.secondary, custom_id="vc_disconnect")  
     async def disconnect_member(self, interaction: discord.Interaction, button: discord.ui.Button):  
-        vc = interaction.user.voice.channel  
-        if vc.owner != interaction.user:
+        vc = interaction.user.voice.channel
+        if VCControlView.owners.get(vc.id) != interaction.user.id:
             await interaction.response.send_message("You must be the owner of the voice channel to disconnect a member.", ephemeral=True)
             return
 
-        # List members in the VC
-        members = [member.name for member in vc.members]
-        options = [discord.SelectOption(label=member, value=member) for member in members]
+        members = [member for member in vc.members if member != interaction.user]
+        if not members:
+            await interaction.response.send_message("No one to disconnect.", ephemeral=True)
+            return
+
+        options = [discord.SelectOption(label=member.name, value=str(member.id)) for member in members]
 
         select = discord.ui.Select(
             placeholder="Choose a person to disconnect",
-            options=options,
-            custom_id="disconnect_select"
+            options=options
         )
 
         async def disconnect_callback(interaction: discord.Interaction):
-            member_name = interaction.data['values'][0]
-            member = discord.utils.get(vc.members, name=member_name)
-            await member.move_to(None)  # Disconnect the member
-            await interaction.response.send_message(f"{member_name} has been disconnected from the VC.", ephemeral=True)
+            member_id = int(interaction.data['values'][0])
+            member = interaction.guild.get_member(member_id)
+            if member:
+                await member.move_to(None)
+                await interaction.response.send_message(f"{member.name} has been disconnected.", ephemeral=True)
 
         select.callback = disconnect_callback
-        await interaction.response.send_message("Please select who to disconnect from the VC.", ephemeral=True, view=discord.ui.View(select))
+        await interaction.response.send_message("Please select who to disconnect.", ephemeral=True, view=discord.ui.View(select))
 
     @discord.ui.button(label="Delete", style=discord.ButtonStyle.secondary, custom_id="vc_delete")  
     async def delete_vc(self, interaction: discord.Interaction, button: discord.ui.Button):  
         vc = interaction.user.voice.channel  
-        if vc.id != 1364639518279467079:  # Avoid deleting the specific VC  
+        if vc.id != 1364639518279467079 and vc.id not in self.protected_vcs:  
             await vc.delete(reason=f"Deleted by {interaction.user}")  
             await interaction.response.send_message("Voice channel deleted.", ephemeral=True)  
+        elif vc.id in self.protected_vcs:
+            await interaction.response.send_message("This voice channel is protected and cannot be deleted.", ephemeral=True)
         else:  
             await interaction.response.send_message("This voice channel cannot be deleted.", ephemeral=True)
+
+    @discord.ui.button(label="Protect", style=discord.ButtonStyle.secondary, custom_id="vc_protect")
+    async def protect_vc(self, interaction: discord.Interaction, button: discord.ui.Button):
+        vc = interaction.user.voice.channel
+        if VCControlView.owners.get(vc.id) != interaction.user.id:
+            await interaction.response.send_message("Only the VC owner can toggle protection.", ephemeral=True)
+            return
+
+        if vc.id in self.protected_vcs:
+            self.protected_vcs.remove(vc.id)
+            await interaction.response.send_message("Voice channel is no longer protected.", ephemeral=True)
+        else:
+            self.protected_vcs.add(vc.id)
+            await interaction.response.send_message("Voice channel is now protected from deletion.", ephemeral=True)
 
 class VCControl(commands.Cog):
     def __init__(self, bot):
@@ -174,7 +194,8 @@ Decrease - Decrease your voice channel's user limit
 Claim - Claim your voice channel
 Transfer - Transfer ownership of your voice channel
 Disconnect - Disconnect a member from the voice channel
-Delete - Delete your voice channel""",
+Delete - Delete your voice channel
+Protect - Toggle VC deletion protection""",
             color=discord.Color.blurple()
         )
         view = VCControlView(self.bot)
@@ -186,20 +207,33 @@ Delete - Delete your voice channel""",
 
     @commands.Cog.listener()  
     async def on_voice_state_update(self, member, before, after):  
-        if after.channel and after.channel.id == 1364639518279467079:  # Check if user joins the special channel  
+        if after.channel and after.channel.id == 1364639518279467079:  
             category = self.bot.get_channel(1359208824497639424)  
             if category:  
                 new_vc = await member.guild.create_voice_channel(  
                     f"{member.name}'s VC", category=category)  
                 await new_vc.set_permissions(member, connect=True)  
                 await member.move_to(new_vc)  
-                await self.send_panel()  # Ensure panel is refreshed  
+                VCControlView.owners[new_vc.id] = member.id
+                await self.send_panel()  
                 await self.delete_inactive_vc(new_vc)  
 
+        # Auto-delete VC when empty
+        if before.channel and before.channel.category and before.channel.category.id == 1359208824497639424:
+            if len(before.channel.members) == 0 and before.channel.id != 1364639518279467079:
+                view = VCControlView(self.bot)
+                if before.channel.id not in view.protected_vcs:
+                    try:
+                        await before.channel.delete(reason="VC empty, auto-deleted.")
+                    except:
+                        pass
+
     async def delete_inactive_vc(self, vc):  
-        await asyncio.sleep(600)  # 10 minutes  
+        await asyncio.sleep(600)  
         if len(vc.members) == 0:  
-            await vc.delete()
+            view = VCControlView(self.bot)
+            if vc.id not in view.protected_vcs:
+                await vc.delete()
 
 async def setup(bot):
     await bot.add_cog(VCControl(bot))
