@@ -2,14 +2,13 @@ import discord
 from discord.ext import commands, tasks
 import random
 import aiohttp
-import io
 from bs4 import BeautifulSoup
 
-class PFPSpam(commands.Cog):
+class PFPDrop(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.channel_id = 1362801674560737462
-        self.query_list = [
+        self.channel_id = 1362801674560737462  # Replace with your target channel ID
+        self.search_queries = [
             "femboy anime aesthetic pfp site:pinterest.com",
             "goth girl aesthetic pfp site:pinterest.com",
             "dark romance aesthetic pfp site:pinterest.com",
@@ -29,60 +28,57 @@ class PFPSpam(commands.Cog):
     def cog_unload(self):
         self.send_pfps.cancel()
 
-    async def fetch_images(self, query, count=5):
-        url = f"https://www.pinterest.com/search/pins/?q={query.replace(' ', '%20')}"
-        headers = {
-            "User-Agent": "Mozilla/5.0"
-        }
-        images = []
-        async with aiohttp.ClientSession() as session:
-            try:
-                async with session.get(url, headers=headers) as response:
-                    text = await response.text()
-                    soup = BeautifulSoup(text, 'html.parser')
-                    pins = soup.find_all('img', {'srcset': True})
-                    for pin in pins:
-                        img_url = pin['srcset'].split(',')[0].split(' ')[0]  # Get the largest image
-                        images.append(img_url)
-                        if len(images) == count:
-                            break
-            except Exception as e:
-                print(f"Error fetching images: {e}")
-        return images
-
     @tasks.loop(minutes=5)
     async def send_pfps(self):
         channel = self.bot.get_channel(self.channel_id)
         if not channel:
             return
 
-        query = random.choice(self.query_list)
-        image_urls = []
+        query = random.choice(self.search_queries)
+        image_urls = await self.fetch_images(query)
 
-        while len(image_urls) < 5:
-            results = await self.fetch_images(query)
-            for img in results:
-                if img not in image_urls:
-                    image_urls.append(img)
-                if len(image_urls) == 5:
-                    break
-            if len(image_urls) < 5:
-                query = random.choice(self.query_list)
+        if image_urls:
+            for url in random.sample(image_urls, min(5, len(image_urls))):
+                await channel.send(url)
 
-        files = []
+    @send_pfps.before_loop
+    async def before_pfps(self):
+        await self.bot.wait_until_ready()
+
+    async def fetch_images(self, query):
+        headers = {
+            "User-Agent": "Mozilla/5.0"
+        }
+        search_url = f"https://www.bing.com/images/search?q={query.replace(' ', '+')}&form=HDRSC2"
+
         async with aiohttp.ClientSession() as session:
-            for url in image_urls:
-                try:
-                    async with session.get(url) as resp:
-                        if resp.status == 200:
-                            img_bytes = await resp.read()
-                            filename = url.split("/")[-1].split("?")[0]
-                            files.append(discord.File(io.BytesIO(img_bytes), filename=filename))
-                except:
-                    continue
+            async with session.get(search_url, headers=headers) as response:
+                if response.status != 200:
+                    return []
 
-        if files:
-            await channel.send(files=files)
+                html = await response.text()
+                soup = BeautifulSoup(html, "html.parser")
+                image_elements = soup.select("a.iusc")
+
+                results = []
+                for tag in image_elements:
+                    m = tag.get("m")
+                    if m and '"murl":"' in m:
+                        start = m.find('"murl":"') + len('"murl":"')
+                        end = m.find('"', start)
+                        image_url = m[start:end].replace("\\", "")
+                        if any(ext in image_url for ext in [".jpg", ".jpeg", ".png"]):
+                            results.append(image_url)
+                return results
+
+    @commands.command()
+    async def pfp(self, ctx):
+        """Test command to fetch and send 1 image."""
+        query = random.choice(self.search_queries)
+        image_urls = await self.fetch_images(query)
+
+        if image_urls:
+            await ctx.send(random.choice(image_urls))  # Send one random image for testing
 
 async def setup(bot):
-    await bot.add_cog(PFPSpam(bot))
+    await bot.add_cog(PFPDrop(bot))
