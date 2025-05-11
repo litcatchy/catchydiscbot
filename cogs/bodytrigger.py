@@ -1,69 +1,116 @@
 import discord
 from discord.ext import commands
-import aiohttp
 import re
 import asyncio
 import random
-from bs4 import BeautifulSoup
 
 class PFPTrigger(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        # Define the triggers and search queries
+        # Define the triggers and Pinterest links for each keyword
         self.triggers = {
-            r"\blips?\b": ["aesthetic female lips site:pinterest.com"],
-            r"\beyes?\b": ["aesthetic female eyes site:pinterest.com"],
-            r"\bboobs?\b": ["boobs aesthetic site:pinterest.com", "aesthetic boobs site:pinterest.com"],
-            r"\bwaists?\b": ["women aesthetic waist site:pinterest.com", "sexy women waist site:pinterest.com"],
-            r"\babs?\b": ["female aesthetic abs site:pinterest.com", "male aesthetic abs site:pinterest.com"],
-            r"\bass(?:es)?\b": ["female aesthetic ass site:pinterest.com", "sexy anime ass site:pinterest.com"],
-            r"\bbiceps?\b": ["male aesthetic veiny biceps site:pinterest.com", "aesthetic biceps site:pinterest.com"],
-            r"\bveins?\b": ["veiny arms aesthetic site:pinterest.com", "aesthetic veiny arms site:pinterest.com"],
-            r"\bhunter eyes?\b": ["male aesthetic hunter eyes site:pinterest.com"],
-            r"\bhands?\b": ["female aesthetic hands site:pinterest.com"],
-            r"\bchoke\b": ["aesthetic choke site:pinterest.com", "aesthetic female getting choker site:pinterest.com"],
-            r"\bbaths?\b|\bbathe?\b": ["aesthetic girl bath site:pinterest.com", "sexy anime bath site:pinterest.com"]
+            r"\blips?\b": [
+                "https://pin.it/7tv21e6Pj",
+                "https://pin.it/7tv3L7XeF"
+            ],
+            r"\beyes?\b": [
+                "https://pin.it/4QksXfb",
+                "https://pin.it/7ztnz4BQ"
+            ],
+            r"\bboobs?\b": [
+                "https://pin.it/3dvGvlQZ0",
+                "https://pin.it/7u9Tsqv6A",
+                "https://pin.it/4ew5Yj4JE",
+                "https://pin.it/1MHt4JE5v",
+                "https://pin.it/4WcD8sMLz",
+                "https://pin.it/2FhJUbe4K",
+                "https://pin.it/6f0poPxHX",
+                "https://pin.it/1agwsl8s1",
+                "https://pin.it/1RifvFxEE",
+                "https://pin.it/7480nBNfw",
+                "https://pin.it/tvjCniP5f",
+                "https://pin.it/5m6lllUOu",
+                "https://pin.it/2lN4oujF9",
+                "https://pin.it/4vLABamvx",
+                "https://pin.it/4jSBhKxtQ",
+                "https://pin.it/41U5QbEzi",
+                "https://pin.it/5bwHeU0oi",
+                "https://pin.it/2wZ417Afg",
+                "https://pin.it/3RzXo9nwy",
+                "https://pin.it/vmnqEpkHi",
+                "https://pin.it/4mNscom13",
+                "https://pin.it/2pRSGVypb",
+                "https://pin.it/5bnjaUdjI",
+                "https://pin.it/76Hmgsgqy",
+                "https://pin.it/7w4t2ndAi",
+                "https://pin.it/6z8xPrsnE",
+                "https://pin.it/3Fx68L0fe",
+            ],
+            r"\bwaists?\b": [
+                "https://pin.it/3hmmovN",
+                "https://pin.it/7SHgK1f"
+            ],
+            r"\babs?\b": [
+                "https://pin.it/3Qk0h82",
+                "https://pin.it/2Vw5cXr"
+            ],
+            r"\bass(es)?\b": [
+                "https://pin.it/2kGdrK4",
+                "https://pin.it/7mGLZ69"
+            ],
+            r"\bbiceps?\b": [
+                "https://pin.it/7yJwxaR",
+                "https://pin.it/4onHn70"
+            ],
+            r"\bveins?\b": [
+                "https://pin.it/4r4Lg1X",
+                "https://pin.it/5HpqkZK"
+            ],
+            r"\bhunter eyes?\b": [
+                "https://pin.it/7ALc6J8",
+                "https://pin.it/6EkMkKP"
+            ],
+            r"\bhands?\b": [
+                "https://pin.it/4vj7VJm",
+                "https://pin.it/7rhD6pz"
+            ],
+            r"\bchoke\b": [
+                "https://pin.it/7UNz0Mj",
+                "https://pin.it/6TYlTzE"
+            ],
+            r"\bbaths?\b|\bbathe?\b": [
+                "https://pin.it/6gZ9i2L0",
+                "https://pin.it/2tL7o8Y8"
+            ]
         }
+        
+        # Dictionary to track images sent for each keyword
+        self.sent_images = {keyword: [] for keyword in self.triggers}
 
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.bot:
             return
 
-        for pattern, queries in self.triggers.items():
+        for pattern, urls in self.triggers.items():
             if re.search(pattern, message.content, re.IGNORECASE):
-                query = random.choice(queries)  # Randomly pick one search query
-                img_url = await self.fetch_image(query)
-                if img_url:
-                    sent_msg = await message.channel.send(img_url)
-                    await asyncio.sleep(3.5)  # Wait before deleting the image
-                    await sent_msg.delete()
-                break  # Exit the loop after the first match
-
-        # Ensure the bot can still process commands after triggering
-        await self.bot.process_commands(message)
-
-    async def fetch_image(self, query):
-        headers = {"User-Agent": "Mozilla/5.0"}
-        search_url = f"https://www.bing.com/images/search?q={query.replace(' ', '+')}&form=HDRSC2"
-
-        async with aiohttp.ClientSession() as session:
-            async with session.get(search_url, headers=headers) as response:
-                if response.status != 200:
-                    return None
-                html = await response.text()
-                soup = BeautifulSoup(html, "html.parser")
-                image_elements = soup.select("a.iusc")
-                random.shuffle(image_elements)  # Shuffle to avoid repetitive images
-                for tag in image_elements:
-                    m = tag.get("m")
-                    if m and '"murl":"' in m:
-                        start = m.find('"murl":"') + len('"murl":"')
-                        end = m.find('"', start)
-                        image_url = m[start:end].replace("\\", "")
-                        if "pinterest" in image_url and any(ext in image_url for ext in [".jpg", ".jpeg", ".png"]):
-                            return image_url
-        return None
+                # Filter out the URLs that have already been sent
+                available_urls = [url for url in urls if url not in self.sent_images[pattern]]
+                
+                if not available_urls:
+                    # If all images have been sent, reset the list of sent images for this keyword
+                    self.sent_images[pattern] = []
+                    available_urls = urls
+                
+                # Select a random image from the available URLs
+                image_url = random.choice(available_urls)
+                
+                # Mark the selected image as sent
+                self.sent_images[pattern].append(image_url)
+                
+                # Send the image URL as an image in Discord
+                await message.channel.send(image_url)
+                break
 
 async def setup(bot):
     await bot.add_cog(PFPTrigger(bot))
