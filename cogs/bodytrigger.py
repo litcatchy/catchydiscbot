@@ -1,27 +1,27 @@
 import discord
 from discord.ext import commands
 import aiohttp
-from bs4 import BeautifulSoup
-import asyncio
 import re
+import asyncio
+from bs4 import BeautifulSoup
 
-class BodyTrigger(commands.Cog):
+class PFPTrigger(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.word_map = {
-            "lips": "aesthetic female lips",
-            "eyes": "aesthetic female eyes",
-            "boobs": "aesthetic boobs",
-            "waist": "sexy women waist",
-            "abs": "female aesthetic abs",
-            "ass": "female aesthetic ass",
-            "biceps": "aesthetic biceps",
-            "veins": "veiny arms aesthetic",
-            "hunter eyes": "male aesthetic hunter eyes",
-            "hands": "female aesthetic hands",
-            "choke": "aesthetic female getting choked",
-            "bath": "aesthetic girl bath",
-            "bathe": "aesthetic girl bath"
+        self.triggers = {
+            r"\blips?\b": "aesthetic female lips",
+            r"\beyes?\b": "aesthetic female eyes",
+            r"\bboobs?\b": "boobs aesthetic",
+            r"\bwaists?\b": "women aesthetic waist",
+            r"\babs?\b": "female aesthetic abs",
+            r"\bass(es)?\b": "female aesthetic ass",
+            r"\bbiceps?\b": "male aesthetic veiny biceps",
+            r"\bveins?\b": "veiny arms aesthetic",
+            r"\bhunter eyes?\b": "male aesthetic hunter eyes",
+            r"\bhands?\b": "female aesthetic hands",
+            r"\bchoke\b": "aesthetic choke",
+            r"\bbathe?\b": "aesthetic girl bath",
+            r"\bbaths?\b": "aesthetic girl bath"
         }
 
     @commands.Cog.listener()
@@ -29,35 +29,26 @@ class BodyTrigger(commands.Cog):
         if message.author.bot:
             return
 
-        content = message.content.lower()
-        for trigger, query in self.word_map.items():
-            pattern = r'\b' + re.escape(trigger.rstrip("s")) + r's?\b'
-            if re.search(pattern, content):
-                image_url = await self.fetch_image(query)
-                if image_url:
-                    sent = await message.channel.send(image_url)
-                    await asyncio.sleep(1.3)
-                    try:
-                        await sent.delete()
-                    except discord.NotFound:
-                        pass
+        for pattern, query in self.triggers.items():
+            if re.search(pattern, message.content, re.IGNORECASE):
+                img_url = await self.fetch_image(query)
+                if img_url:
+                    sent_msg = await message.channel.send(img_url)
+                    await asyncio.sleep(3.5)
+                    await sent_msg.delete()
                 break
 
     async def fetch_image(self, query):
-        headers = {
-            "User-Agent": "Mozilla/5.0"
-        }
-        search_url = f"https://www.bing.com/images/search?q={query.replace(' ', '+')}+site:pinterest.com"
+        headers = {"User-Agent": "Mozilla/5.0"}
+        search_url = f"https://www.bing.com/images/search?q={query.replace(' ', '+')}&form=HDRSC2"
 
         async with aiohttp.ClientSession() as session:
             async with session.get(search_url, headers=headers) as response:
                 if response.status != 200:
                     return None
-
                 html = await response.text()
                 soup = BeautifulSoup(html, "html.parser")
                 image_elements = soup.select("a.iusc")
-
                 for tag in image_elements:
                     m = tag.get("m")
                     if m and '"murl":"' in m:
@@ -69,4 +60,4 @@ class BodyTrigger(commands.Cog):
         return None
 
 async def setup(bot):
-    await bot.add_cog(BodyTrigger(bot))
+    await bot.add_cog(PFPTrigger(bot))
