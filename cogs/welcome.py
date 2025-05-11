@@ -35,12 +35,12 @@ class Welcome(commands.Cog):
         # Get welcome channel
         channel = member.guild.get_channel(1339193406269685821)
         if channel:
-            # Send the ping outside the embed
+            # Ping the user outside the embed
             await channel.send(member.mention)
 
-            # Send the embed and dropdown
+            # Send the embed with the user mention
             embed = discord.Embed(
-                description="welcome say something! we don’t bite (:",
+                description=f"{member.mention} welcome to {member.guild.name}, say something! We don’t bite (:",
                 color=discord.Color.blurple()
             )
             view = WelcomeDropdown()
