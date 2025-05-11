@@ -27,16 +27,20 @@ class Welcome(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
-        # Auto assign general role
-        general_role = member.guild.get_role(1361487173525831771)
-        if general_role:
-            await member.add_roles(general_role)
+        # Assign default role
+        default_role = member.guild.get_role(1361487173525831771)
+        if default_role:
+            await member.add_roles(default_role)
 
-        # Send welcome message in specific channel
+        # Get welcome channel
         channel = member.guild.get_channel(1339193406269685821)
         if channel:
+            # Send the ping outside the embed
+            await channel.send(member.mention)
+
+            # Send the embed and dropdown
             embed = discord.Embed(
-                description=f"welcome {member.mention} say something! we don’t bite (:",
+                description="welcome say something! we don’t bite (:",
                 color=discord.Color.blurple()
             )
             view = WelcomeDropdown()
