@@ -1,86 +1,64 @@
 import discord
 from discord.ext import commands
-import re
-import asyncio
 import random
+import re
 
 class PFPTrigger(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        # Define the triggers and Pinterest links for each keyword
+        # Define the triggers and Discord image links for each keyword
         self.triggers = {
             r"\blips?\b": [
-                "https://pin.it/7tv21e6Pj",
-                "https://pin.it/7tv3L7XeF"
+                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_1}.jpg",
+                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_2}.jpg",
+                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_3}.jpg",
             ],
             r"\beyes?\b": [
-                "https://pin.it/4QksXfb",
-                "https://pin.it/7ztnz4BQ"
+                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_4}.jpg",
+                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_5}.jpg",
+                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_6}.jpg",
             ],
             r"\bboobs?\b": [
-                "https://pin.it/3dvGvlQZ0",
-                "https://pin.it/7u9Tsqv6A",
-                "https://pin.it/4ew5Yj4JE",
-                "https://pin.it/1MHt4JE5v",
-                "https://pin.it/4WcD8sMLz",
-                "https://pin.it/2FhJUbe4K",
-                "https://pin.it/6f0poPxHX",
-                "https://pin.it/1agwsl8s1",
-                "https://pin.it/1RifvFxEE",
-                "https://pin.it/7480nBNfw",
-                "https://pin.it/tvjCniP5f",
-                "https://pin.it/5m6lllUOu",
-                "https://pin.it/2lN4oujF9",
-                "https://pin.it/4vLABamvx",
-                "https://pin.it/4jSBhKxtQ",
-                "https://pin.it/41U5QbEzi",
-                "https://pin.it/5bwHeU0oi",
-                "https://pin.it/2wZ417Afg",
-                "https://pin.it/3RzXo9nwy",
-                "https://pin.it/vmnqEpkHi",
-                "https://pin.it/4mNscom13",
-                "https://pin.it/2pRSGVypb",
-                "https://pin.it/5bnjaUdjI",
-                "https://pin.it/76Hmgsgqy",
-                "https://pin.it/7w4t2ndAi",
-                "https://pin.it/6z8xPrsnE",
-                "https://pin.it/3Fx68L0fe",
+                "https://cdn.discordapp.com/attachments/1371136109479858296/1371136182003568791/9f6689276a87c4b62783606df6d75445.jpg?ex=68220994&is=6820b814&hm=049116be1164956b958e3bf7b393bb7d524a5a0ffa9ccc5d7dc422d64d040c72&",
+                "https://cdn.discordapp.com/attachments/1371136109479858296/1371136745910829117/18284919a184ef1b592b2ae9a3d22684.jpg?ex=68220a1a&is=6820b89a&hm=e88707bf06248d343d6af3a67a3975bb1396f4d1577a886ca487d9f67bc0ebd3&",
+                "https://cdn.discordapp.com/attachments/1371136109479858296/1371136761400529046/658cbff7b64550ad5c9c9a2d2f22c671.jpg?ex=68220a1e&is=6820b89e&hm=442b8461f2ed2704ce4d80e87837dc5ec4115ba472a18bb3e5426e3d0433661a&",
+                "https://cdn.discordapp.com/attachments/1371136109479858296/1371137298795724800/9bd728af589af668f150ab9f037b90cf.jpg?ex=68220a9e&is=6820b91e&hm=78ceb30b90305381ef248ae3378c54df5273ae3e9d24a9365a3a638c7d172e35&",
             ],
             r"\bwaists?\b": [
-                "https://pin.it/3hmmovN",
-                "https://pin.it/7SHgK1f"
+                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_11}.jpg",
+                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_12}.jpg",
             ],
             r"\babs?\b": [
-                "https://pin.it/3Qk0h82",
-                "https://pin.it/2Vw5cXr"
+                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_13}.jpg",
+                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_14}.jpg",
             ],
             r"\bass(es)?\b": [
-                "https://pin.it/2kGdrK4",
-                "https://pin.it/7mGLZ69"
+                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_15}.jpg",
+                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_16}.jpg",
             ],
             r"\bbiceps?\b": [
-                "https://pin.it/7yJwxaR",
-                "https://pin.it/4onHn70"
+                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_17}.jpg",
+                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_18}.jpg",
             ],
             r"\bveins?\b": [
-                "https://pin.it/4r4Lg1X",
-                "https://pin.it/5HpqkZK"
+                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_19}.jpg",
+                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_20}.jpg",
             ],
             r"\bhunter eyes?\b": [
-                "https://pin.it/7ALc6J8",
-                "https://pin.it/6EkMkKP"
+                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_21}.jpg",
+                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_22}.jpg",
             ],
             r"\bhands?\b": [
-                "https://pin.it/4vj7VJm",
-                "https://pin.it/7rhD6pz"
+                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_23}.jpg",
+                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_24}.jpg",
             ],
             r"\bchoke\b": [
-                "https://pin.it/7UNz0Mj",
-                "https://pin.it/6TYlTzE"
+                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_25}.jpg",
+                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_26}.jpg",
             ],
             r"\bbaths?\b|\bbathe?\b": [
-                "https://pin.it/6gZ9i2L0",
-                "https://pin.it/2tL7o8Y8"
+                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_27}.jpg",
+                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_28}.jpg",
             ]
         }
         
