@@ -1,69 +1,81 @@
 import discord
 from discord.ext import commands
-import random
 import re
+import random
 
 class PFPTrigger(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        # Define the triggers and Discord image links for each keyword
+
         self.triggers = {
             r"\blips?\b": [
-                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_1}.jpg",
-                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_2}.jpg",
-                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_3}.jpg",
+                "https://cdn.discordapp.com/attachments/123456/lips1.png",
+                "https://cdn.discordapp.com/attachments/123456/lips2.png",
+                "https://cdn.discordapp.com/attachments/123456/lips3.png",
             ],
             r"\beyes?\b": [
-                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_4}.jpg",
-                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_5}.jpg",
-                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_6}.jpg",
+                "https://cdn.discordapp.com/attachments/123456/eyes1.png",
+                "https://cdn.discordapp.com/attachments/123456/eyes2.png",
+                "https://cdn.discordapp.com/attachments/123456/eyes3.png",
             ],
             r"\bboobs?\b": [
                 "https://cdn.discordapp.com/attachments/1371136109479858296/1371136182003568791/9f6689276a87c4b62783606df6d75445.jpg?ex=68220994&is=6820b814&hm=049116be1164956b958e3bf7b393bb7d524a5a0ffa9ccc5d7dc422d64d040c72&",
-                "https://cdn.discordapp.com/attachments/1371136109479858296/1371136745910829117/18284919a184ef1b592b2ae9a3d22684.jpg?ex=68220a1a&is=6820b89a&hm=e88707bf06248d343d6af3a67a3975bb1396f4d1577a886ca487d9f67bc0ebd3&",
-                "https://cdn.discordapp.com/attachments/1371136109479858296/1371136761400529046/658cbff7b64550ad5c9c9a2d2f22c671.jpg?ex=68220a1e&is=6820b89e&hm=442b8461f2ed2704ce4d80e87837dc5ec4115ba472a18bb3e5426e3d0433661a&",
                 "https://cdn.discordapp.com/attachments/1371136109479858296/1371137298795724800/9bd728af589af668f150ab9f037b90cf.jpg?ex=68220a9e&is=6820b91e&hm=78ceb30b90305381ef248ae3378c54df5273ae3e9d24a9365a3a638c7d172e35&",
+                "https://cdn.discordapp.com/attachments/1371136109479858296/1371139160144089178/fcc9f273fcc62b217efb69cad994c9d5.jpg?ex=68220c5a&is=6820bada&hm=1ec36f42e85325f74eb90a959d32d68b8e9615493ec684c580989c393ae9e695&",
             ],
             r"\bwaists?\b": [
-                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_11}.jpg",
-                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_12}.jpg",
+                "https://cdn.discordapp.com/attachments/123456/waist1.png",
+                "https://cdn.discordapp.com/attachments/123456/waist2.png",
+                "https://cdn.discordapp.com/attachments/123456/waist3.png",
             ],
             r"\babs?\b": [
-                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_13}.jpg",
-                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_14}.jpg",
+                "https://cdn.discordapp.com/attachments/123456/abs1.png",
+                "https://cdn.discordapp.com/attachments/123456/abs2.png",
+                "https://cdn.discordapp.com/attachments/123456/abs3.png",
             ],
             r"\bass(es)?\b": [
-                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_15}.jpg",
-                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_16}.jpg",
+                "https://cdn.discordapp.com/attachments/123456/ass1.png",
+                "https://cdn.discordapp.com/attachments/123456/ass2.png",
+                "https://cdn.discordapp.com/attachments/123456/ass3.png",
             ],
             r"\bbiceps?\b": [
-                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_17}.jpg",
-                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_18}.jpg",
+                "https://cdn.discordapp.com/attachments/123456/biceps1.png",
+                "https://cdn.discordapp.com/attachments/123456/biceps2.png",
+                "https://cdn.discordapp.com/attachments/123456/biceps3.png",
             ],
             r"\bveins?\b": [
-                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_19}.jpg",
-                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_20}.jpg",
+                "https://cdn.discordapp.com/attachments/123456/veins1.png",
+                "https://cdn.discordapp.com/attachments/123456/veins2.png",
+                "https://cdn.discordapp.com/attachments/123456/veins3.png",
             ],
             r"\bhunter eyes?\b": [
-                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_21}.jpg",
-                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_22}.jpg",
+                "https://cdn.discordapp.com/attachments/123456/hunter1.png",
+                "https://cdn.discordapp.com/attachments/123456/hunter2.png",
+                "https://cdn.discordapp.com/attachments/123456/hunter3.png",
             ],
             r"\bhands?\b": [
-                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_23}.jpg",
-                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_24}.jpg",
+                "https://cdn.discordapp.com/attachments/123456/hands1.png",
+                "https://cdn.discordapp.com/attachments/123456/hands2.png",
+                "https://cdn.discordapp.com/attachments/123456/hands3.png",
             ],
             r"\bchoke\b": [
-                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_25}.jpg",
-                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_26}.jpg",
+                "https://cdn.discordapp.com/attachments/123456/choke1.png",
+                "https://cdn.discordapp.com/attachments/123456/choke2.png",
+                "https://cdn.discordapp.com/attachments/123456/choke3.png",
             ],
             r"\bbaths?\b|\bbathe?\b": [
-                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_27}.jpg",
-                "https://cdn.discordapp.com/attachments/{channel_id}/{image_id_28}.jpg",
+                "https://cdn.discordapp.com/attachments/123456/bath1.png",
+                "https://cdn.discordapp.com/attachments/123456/bath2.png",
+                "https://cdn.discordapp.com/attachments/123456/bath3.png",
+            ],
+            r"\bfeet\b": [
+                "https://cdn.discordapp.com/attachments/123456/feet1.png",
+                "https://cdn.discordapp.com/attachments/123456/feet2.png",
+                "https://cdn.discordapp.com/attachments/123456/feet3.png",
             ]
         }
-        
-        # Dictionary to track images sent for each keyword
-        self.sent_images = {keyword: [] for keyword in self.triggers}
+
+        self.sent_images = {pattern: [] for pattern in self.triggers}
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -72,22 +84,16 @@ class PFPTrigger(commands.Cog):
 
         for pattern, urls in self.triggers.items():
             if re.search(pattern, message.content, re.IGNORECASE):
-                # Filter out the URLs that have already been sent
-                available_urls = [url for url in urls if url not in self.sent_images[pattern]]
-                
-                if not available_urls:
-                    # If all images have been sent, reset the list of sent images for this keyword
+                available = [u for u in urls if u not in self.sent_images[pattern]]
+
+                if not available:
                     self.sent_images[pattern] = []
-                    available_urls = urls
-                
-                # Select a random image from the available URLs
-                image_url = random.choice(available_urls)
-                
-                # Mark the selected image as sent
-                self.sent_images[pattern].append(image_url)
-                
-                # Send the image URL as an image in Discord
-                await message.channel.send(image_url)
+                    available = urls
+
+                selected = random.choice(available)
+                self.sent_images[pattern].append(selected)
+
+                await message.channel.send(selected, delete_after=3)
                 break
 
 async def setup(bot):
