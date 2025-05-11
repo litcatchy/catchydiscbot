@@ -120,7 +120,7 @@ class PFPTrigger(commands.Cog):
                 selected = random.choice(available)
                 self.sent_images[pattern].append(selected)
 
-                await message.channel.send(selected, delete_after=3)
+                await message.channel.send(selected, delete_after=7)
                 break
 
 async def setup(bot):
