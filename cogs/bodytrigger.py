@@ -76,14 +76,14 @@ class PFPTrigger(commands.Cog):
                 "https://cdn.discordapp.com/attachments/1371136109479858296/1371151835225784380/bef5249fb8e7a3014f20d912a39d3ce7.jpg?ex=68221828&is=6820c6a8&hm=360e702d190d78c255832b70420d06e231447e1387d21a30c603bf481798c5d3&",
             ],
             r"\bhunter eyes?\b": [
-                "https://cdn.discordapp.com/attachments/123456/hunter1.png",
-                "https://cdn.discordapp.com/attachments/123456/hunter2.png",
-                "https://cdn.discordapp.com/attachments/123456/hunter3.png",
+                "https://cdn.discordapp.com/attachments/1371136109479858296/1371154310959862001/2c7d2f3c3615e768263bdf6914e4f462.jpg?ex=68221a76&is=6820c8f6&hm=01fbd6dd8b2274999ec1127462267a453b2f0a21141eabfbd1f550566ff7c393&",
+                "https://cdn.discordapp.com/attachments/1371136109479858296/1371154322624348246/836640f95b27bd0c1dfe0cb4cce6b24d.jpg?ex=68221a79&is=6820c8f9&hm=3213e9279d909a874e903bfe0343942296f1819d887da5d8a65ebbbf42497c72&",
+                "https://cdn.discordapp.com/attachments/1371136109479858296/1371154335483957338/872ce53d9649e230c0e3f1761b3afd1b.jpg?ex=68221a7c&is=6820c8fc&hm=c6274f2cebf2915852da8fc42346da41cf1e565e5218ca30a1292167b97d500b&",
             ],
             r"\bhands?\b": [
-                "https://cdn.discordapp.com/attachments/123456/hands1.png",
-                "https://cdn.discordapp.com/attachments/123456/hands2.png",
-                "https://cdn.discordapp.com/attachments/123456/hands3.png",
+                "https://cdn.discordapp.com/attachments/1371136109479858296/1371154072937168956/dd8e86b01e8ce47b9c3ac498ab6b8d95.jpg?ex=68221a3d&is=6820c8bd&hm=c378640435f1685fe1f83d58ab5f5137bbd55b74236f0e8a3843b7d85eae5f5c&",
+                "https://cdn.discordapp.com/attachments/1371136109479858296/1371154083599093890/8e9d7789867a158a9099c38655917cd2.jpg?ex=68221a40&is=6820c8c0&hm=5e0a45d281a22143f30ac4fa59ce48ca4735ec496881729bc3e052d04e89ae90&",
+                "https://cdn.discordapp.com/attachments/1371136109479858296/1371154095792197682/97e9cf6205834f51cf9a8c5d5954d4ac.jpg?ex=68221a43&is=6820c8c3&hm=4d4aa1b7f28cd65d74fdcaabbed15aa3dacb718386e4cd79a99fa655388d2786&",
             ],
             r"\bchoke\b": [
                 "https://cdn.discordapp.com/attachments/1371136109479858296/1371152127208067162/401942f875679fbfb0701da2569d4204.jpg?ex=6822186d&is=6820c6ed&hm=f23ce43f2fe864e929bce2234218fe54da52d3bcfcded7c8e771b91c411a67ed&",
@@ -91,15 +91,20 @@ class PFPTrigger(commands.Cog):
                 "https://cdn.discordapp.com/attachments/1371136109479858296/1371152106500657172/e29b070c963eb2d76340f36539664a3c.jpg?ex=68221868&is=6820c6e8&hm=1073674fa04b08963dcd9535909a6124b2446c01731ac16d337a4c1f505b446a&",
             ],
             r"\bbaths?\b|\bbathe?\b": [
-                "https://cdn.discordapp.com/attachments/123456/bath1.png",
-                "https://cdn.discordapp.com/attachments/123456/bath2.png",
-                "https://cdn.discordapp.com/attachments/123456/bath3.png",
+                "https://cdn.discordapp.com/attachments/1371136109479858296/1371154702015922288/4cdc62e63d5e42d8c72ab00a15ea646d.jpg?ex=68221ad3&is=6820c953&hm=dd0050a06cf13bd5e7e7b69e085ec79a6b6aef514f161f1b0fc0eb52903f91b4&",
+                "https://cdn.discordapp.com/attachments/1371136109479858296/1371154726015471676/2aba26c6889aff8f7152d07430dcf7c8.jpg?ex=68221ad9&is=6820c959&hm=ea323e8df8bd6a4457e831530d44a5ccd57a9dddea2df4958a20167793aa73c5&",
+                "https://cdn.discordapp.com/attachments/1371136109479858296/1371154713537544282/abb504be07352a4a1c831287261e9f16.jpg?ex=68221ad6&is=6820c956&hm=991c2c2fcc0026b819bb07e0d18ce24ff5f876c1388d2ce7030a59bece757b54&",
             ],
             r"\bfeet\b": [
-                "https://cdn.discordapp.com/attachments/1371136109479858296/1371152610412728340/74c5da20e6876f9d99e217ba23b77d90.jpg?ex=682218e1&is=6820c761&hm=1419be5750a176e621caa648e66399e32e45ecab4bd3b6aae8c8f6ae6e39aba9&",
-                "https://cdn.discordapp.com/attachments/1371136109479858296/1371152610412728340/74c5da20e6876f9d99e217ba23b77d90.jpg?ex=682218e1&is=6820c761&hm=1419be5750a176e621caa648e66399e32e45ecab4bd3b6aae8c8f6ae6e39aba9&",
+                "https://cdn.discordapp.com/attachments/1371136109479858296/1371155234771964024/af4c2478fd8b2fb66a93590165b30c9d.jpg?ex=68221b52&is=6820c9d2&hm=27a76d61d83a9b93848662dd2cf45537e887eb7f5da48c8c8734c1bd3953577b&",
                 "https://cdn.discordapp.com/attachments/1371136109479858296/1371152641127747784/5c73df73ef5041d975fe2a3589efab6b.jpg?ex=682218e8&is=6820c768&hm=a28edfe13d9a6de3f9dc968f5625228bd4073297b1a93d9b46d8e00d0bd6807f&",
-            ]
+                "https://cdn.discordapp.com/attachments/1371136109479858296/1371152641127747784/5c73df73ef5041d975fe2a3589efab6b.jpg?ex=682218e8&is=6820c768&hm=a28edfe13d9a6de3f9dc968f5625228bd4073297b1a93d9b46d8e00d0bd6807f&",
+            ],
+            r"\bback\b": [
+                "https://cdn.discordapp.com/attachments/1371136109479858296/1371155234771964024/af4c2478fd8b2fb66a93590165b30c9d.jpg?ex=68221b52&is=6820c9d2&hm=27a76d61d83a9b93848662dd2cf45537e887eb7f5da48c8c8734c1bd3953577b&&is=6820c761&hm=1419be5750a176e621caa648e66399e32e45ecab4bd3b6aae8c8f6ae6e39aba9&",
+                "https://cdn.discordapp.com/attachments/1371136109479858296/1371155247329968159/536f2a8d1d52d21625ce9042588f5065.jpg?ex=68221b55&is=6820c9d5&hm=05b9f651636dfcccc5ee81aedf60d747b9307ee5ea47c7937612342e5638d288&",
+                "https://cdn.discordapp.com/attachments/1371136109479858296/1371155257379520603/151187e3030379476bfd0626d5a0fc95.jpg?ex=68221b58&is=6820c9d8&hm=e07ba9444c18b44c76aa8f1319c26c1c5396bd20e322ba805276b2ed5333a336&",
+                        ]
         }
 
         self.sent_images = {pattern: [] for pattern in self.triggers}
@@ -120,7 +125,7 @@ class PFPTrigger(commands.Cog):
                 selected = random.choice(available)
                 self.sent_images[pattern].append(selected)
 
-                await message.channel.send(selected, delete_after=7)
+                await message.channel.send(selected, delete_after=6)
                 break
 
 async def setup(bot):
