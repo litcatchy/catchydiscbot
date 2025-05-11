@@ -11,21 +11,20 @@ class PFPTrigger(commands.Cog):
         self.sent_images = set()  # To keep track of already sent images
         
         self.triggers = {
-            r"\blips?\b": ["aesthetic female lips", "female aesthetic lips"],
-            r"\beyes?\b": ["aesthetic female eyes", "beautiful female eyes", "cute eyes aesthetic"],
-            r"\bboobs?\b": ["boobs aesthetic", "aesthetic boobs", "sexy aesthetic boobs"],
-            r"\bwaists?\b": ["women aesthetic waist", "sexy women waist", "aesthetic waistline"],
-            r"\babs?\b": ["female aesthetic abs", "male aesthetic abs", "sexy abs aesthetic"],
-            r"\bass(es)?\b": ["female aesthetic ass", "aesthetic buttocks", "curvy aesthetic ass", "sexy ass aesthetic"],
-            r"\bbiceps?\b": ["male aesthetic veiny biceps", "aesthetic biceps", "biceps aesthetic"],
-            r"\bveins?\b": ["veiny arms aesthetic", "aesthetic veiny arms", "veins aesthetic"],
-            r"\bhunter eyes?\b": ["male aesthetic hunter eyes", "aesthetic hunter eyes"],
-            r"\bhands?\b": ["female aesthetic hands", "aesthetic hands", "pretty hands aesthetic"],
-            r"\bchoke\b": ["aesthetic choke", "aesthetic female getting choked"],
-            r"\bbathe?\b": ["aesthetic girl bath", "beautiful girl bath", "sexy girl bath"],
-            r"\bbaths?\b": ["aesthetic girl bath", "beautiful girl bath", "sexy girl bath"]
+    r"\blips?\b": ["sexy female lips", "sensual lips close-up"],
+    r"\beyes?\b": ["seductive female eyes", "intense eye contact woman"],
+    r"\bboobs?\b": ["hot boobs aesthetic", "sensual bust female", "boobs in lingerie"],
+    r"\bwaists?\b": ["sexy slim waist", "lingerie waist curve"],
+    r"\babs?\b": ["sexy female abs", "toned abs in lingerie"],
+    r"\bass(es)?\b": ["big ass aesthetic", "sexy booty in panties"],
+    r"\bbiceps?\b": ["muscular biceps flexing", "veiny arms male fitness"],
+    r"\bveins?\b": ["veiny arms aesthetic", "close up veiny muscles"],
+    r"\bhunter eyes?\b": ["intense hunter eyes male", "dominant male stare"],
+    r"\bhands?\b": ["female hands on body", "hands in sensual pose"],
+    r"\bchoke\b": ["aesthetic choking kink", "dominant hand on neck"],
+    r"\bbathe?\b": ["nude bath aesthetic", "sensual bath photo"],
+    r"\bbaths?\b": ["woman in bathtub aesthetic", "lingerie bath shoot"]
         }
-
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.bot:
