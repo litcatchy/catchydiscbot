@@ -8,20 +8,22 @@ from bs4 import BeautifulSoup
 class PFPTrigger(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.sent_images = set()  # To keep track of already sent images
+        
         self.triggers = {
-            r"\blips?\b": "aesthetic female lips",
-            r"\beyes?\b": "aesthetic female eyes",
-            r"\bboobs?\b": "boobs aesthetic",
-            r"\bwaists?\b": "women aesthetic waist",
-            r"\babs?\b": "female aesthetic abs",
-            r"\bass(es)?\b": "female aesthetic ass",
-            r"\bbiceps?\b": "male aesthetic veiny biceps",
-            r"\bveins?\b": "veiny arms aesthetic",
-            r"\bhunter eyes?\b": "male aesthetic hunter eyes",
-            r"\bhands?\b": "female aesthetic hands",
-            r"\bchoke\b": "aesthetic choke",
-            r"\bbathe?\b": "aesthetic girl bath",
-            r"\bbaths?\b": "aesthetic girl bath"
+            r"\blips?\b": ["aesthetic female lips", "female aesthetic lips"],
+            r"\beyes?\b": ["aesthetic female eyes", "beautiful female eyes", "cute eyes aesthetic"],
+            r"\bboobs?\b": ["boobs aesthetic", "aesthetic boobs", "sexy aesthetic boobs"],
+            r"\bwaists?\b": ["women aesthetic waist", "sexy women waist", "aesthetic waistline"],
+            r"\babs?\b": ["female aesthetic abs", "male aesthetic abs", "sexy abs aesthetic"],
+            r"\bass(es)?\b": ["female aesthetic ass", "aesthetic buttocks", "curvy aesthetic ass", "sexy ass aesthetic"],
+            r"\bbiceps?\b": ["male aesthetic veiny biceps", "aesthetic biceps", "biceps aesthetic"],
+            r"\bveins?\b": ["veiny arms aesthetic", "aesthetic veiny arms", "veins aesthetic"],
+            r"\bhunter eyes?\b": ["male aesthetic hunter eyes", "aesthetic hunter eyes"],
+            r"\bhands?\b": ["female aesthetic hands", "aesthetic hands", "pretty hands aesthetic"],
+            r"\bchoke\b": ["aesthetic choke", "aesthetic female getting choked"],
+            r"\bbathe?\b": ["aesthetic girl bath", "beautiful girl bath", "sexy girl bath"],
+            r"\bbaths?\b": ["aesthetic girl bath", "beautiful girl bath", "sexy girl bath"]
         }
 
     @commands.Cog.listener()
@@ -29,13 +31,17 @@ class PFPTrigger(commands.Cog):
         if message.author.bot:
             return
 
-        for pattern, query in self.triggers.items():
+        for pattern, queries in self.triggers.items():
             if re.search(pattern, message.content, re.IGNORECASE):
-                img_url = await self.fetch_image(query)
-                if img_url:
-                    sent_msg = await message.channel.send(img_url)
-                    await asyncio.sleep(3.5)
-                    await sent_msg.delete()
+                for query in queries:
+                    img_url = await self.fetch_image(query)
+                    if img_url and img_url not in self.sent_images:
+                        sent_msg = await message.channel.send(img_url)
+                        await asyncio.sleep(3.5)  # Wait for 3.5 seconds before deleting the message
+                        await sent_msg.delete()
+                        self.sent_images.add(img_url)
+                        if len(self.sent_images) > 10:
+                            self.sent_images.pop()  # Remove oldest image URL if more than 10 images are stored
                 break
 
     async def fetch_image(self, query):
