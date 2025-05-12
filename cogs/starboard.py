@@ -1,5 +1,8 @@
 import discord
 from discord.ext import commands
+from discord.utils import format_dt
+from datetime import datetime
+import pytz
 
 TRIGGER_EMOJIS = {"💀", "☠️", "😭", "⭐"}
 THRESHOLD = 3
@@ -51,33 +54,39 @@ class Starboard(commands.Cog):
         if not starboard_channel:
             return
 
-        # If count is high enough and not already posted
+        # Post to starboard
         if emoji_used and message.id not in self.message_cache:
             embed = discord.Embed(
                 description=message.content if message.content else "*No text content*",
                 color=discord.Color.purple()
             )
-            embed.set_footer(text=f"Message ID: {message.id}")
 
-            # If replying
+            embed.set_author(name=message.author.name, icon_url=message.author.display_avatar.url)
+
+            # Add reply content if present
             if message.reference:
                 try:
                     replied = await channel.fetch_message(message.reference.message_id)
                     reply_text = replied.content or "*[No text]*"
                     embed.add_field(
-                        name="Replied to:",
-                        value=f"**{replied.author.mention}:** {reply_text}",
+                        name=f"Replied to {replied.author.name}",
+                        value=reply_text,
                         inline=False
                     )
                 except:
                     pass
 
-            # Image
+            # Add image if present
             for a in message.attachments:
                 if a.content_type and a.content_type.startswith("image"):
                     embed.set_image(url=a.url)
                     break
 
+            # Set footer with current time in Asia/Kolkata
+            india_time = datetime.now(pytz.timezone("Asia/Kolkata")).strftime("%I:%M %p • %d %b %Y")
+            embed.set_footer(text=f"{india_time}")
+
+            # Jump button
             view = discord.ui.View()
             view.add_item(discord.ui.Button(
                 label="Go to the message",
@@ -90,7 +99,7 @@ class Starboard(commands.Cog):
             sent_msg = await starboard_channel.send(content=header, embed=embed, view=view)
             self.message_cache[message.id] = sent_msg.id
 
-        # If already posted but now reaction dropped below threshold, remove
+        # Remove from starboard if reaction count drops below threshold
         elif message.id in self.message_cache and not emoji_used:
             try:
                 sb_msg_id = self.message_cache[message.id]
