@@ -14,7 +14,7 @@ class Insult(commands.Cog):
             "Your secrets are always safe with me. I never even listen.",
             "You are the reason shampoo has instructions.",
             "If I had your looks, I’d sue my parents.",
-            "You're not 'him' you're "who invited him."",
+            "You're not “him” you're “who invited him.”",
             "You have something money can’t buy… a really low IQ.",
             "You’re the reason autocorrect gives up.",
             "You bring everyone so much happiness… when you log off.",
