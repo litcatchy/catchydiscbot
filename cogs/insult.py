@@ -69,7 +69,7 @@ class Insult(commands.Cog):
     async def insult(self, ctx):
         if not ctx.message.mentions:
             embed = discord.Embed(
-                description="<:1347449690849022092:> Mentioning someone to insult is a required argument.",
+                description="<:mention:1347449690849022092> Mentioning someone to insult is a required argument.",
                 color=discord.Color.purple()
             )
             await ctx.send(embed=embed)
