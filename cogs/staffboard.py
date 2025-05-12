@@ -1,4 +1,3 @@
-
 import discord
 from discord.ext import commands
 
@@ -6,10 +5,15 @@ class StaffBoard(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-        # Update these user IDs manually for weekly bests
-        self.best_coowner_id = 1353508240784363621 
-        self.best_admin_id = 1187556818570973194  
-        self.best_staff_id = 1363093037130977362
+        # Best of the week (manually update these mentions)
+        self.best_coowner = "<@1353508240784363621>"  
+        self.best_admin = "<@1187556818570973194>"
+        self.best_staff = "<@1363093037130977362>"
+
+        # Emoji usage
+        self.emoji_coowner = "<:coowner:1371463627705421844>"
+        self.emoji_admin = "<:admin:1371463646370201630>"
+        self.emoji_staff = "<:staff:1371463638375993374>"
 
         # Role IDs
         self.coowner_role_id = 1370413469865611274
@@ -20,38 +24,24 @@ class StaffBoard(commands.Cog):
     async def staffboard(self, ctx):
         guild = ctx.guild
 
-        # Fetch members with each role
-        coowners = [m for m in guild.members if self.coowner_role_id in [r.id for r in m.roles]]
-        admins = [m for m in guild.members if self.admin_role_id in [r.id for r in m.roles]]
-        staff = [m for m in guild.members if self.staff_role_id in [r.id for r in m.roles]]
+        coowners = [member.mention for member in guild.members if self.coowner_role_id in [role.id for role in member.roles]]
+        admins = [member.mention for member in guild.members if self.admin_role_id in [role.id for role in member.roles]]
+        staffs = [member.mention for member in guild.members if self.staff_role_id in [role.id for role in member.roles]]
 
-        def format_list(members, best_id, emoji, role_title):
-            lines = []
-            best_member = next((m for m in members if m.id == best_id), None)
-            if best_member:
-                lines.append(f"1. {best_member.mention} [Best {role_title} of the Week {emoji}]")
-                members = [m for m in members if m.id != best_id]
-            for i, member in enumerate(members, start=len(lines)+1):
-                lines.append(f"{i}. {member.mention}")
-            return "\n".join(lines) if lines else "None"
+        coowner_list = [f"1. {self.best_coowner} {self.emoji_coowner}"] + [
+            f"{i+2}. {m}" for i, m in enumerate(member for member in coowners if member != self.best_coowner)
+        ]
+        admin_list = [f"1. {self.best_admin} {self.emoji_admin}"] + [
+            f"{i+2}. {m}" for i, m in enumerate(member for member in admins if member != self.best_admin)
+        ]
+        staff_list = [f"1. {self.best_staff} {self.emoji_staff}"] + [
+            f"{i+2}. {m}" for i, m in enumerate(member for member in staffs if member != self.best_staff)
+        ]
 
-        embed = discord.Embed(title="Best Staff of the Week", color=discord.Color.purple())
-
-        embed.add_field(
-            name="**Co-Owners**",
-            value=format_list(coowners, self.best_coowner_id, "<:coowner:1371463627705421844>", "co-owner"),
-            inline=False,
-        )
-        embed.add_field(
-            name="**Admins**",
-            value=format_list(admins, self.best_admin_id, "<:admin:1371463646370201630>", "admin"),
-            inline=False,
-        )
-        embed.add_field(
-            name="**Staff**",
-            value=format_list(staff, self.best_staff_id, "<:staff:1371463638375993374>", "staff"),
-            inline=False,
-        )
+        embed = discord.Embed(title="Staffboard", color=discord.Color.purple())
+        embed.add_field(name="**Co-Owners**", value="\n".join(coowner_list) or "None", inline=False)
+        embed.add_field(name="**Admins**", value="\n".join(admin_list) or "None", inline=False)
+        embed.add_field(name="**Staffs**", value="\n".join(staff_list) or "None", inline=False)
 
         await ctx.send(embed=embed)
 
