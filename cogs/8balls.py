@@ -22,7 +22,7 @@ class EightBall(commands.Cog):
             "Try again later.",
             "For sure, cutie.",
             "No. Just no.",
-            "I ship it!",
+            "Stop with the boring questions.",
             "You’re not ready for that answer.",
             "Ask someone hotter.",
             "Ask again when you’re cooler.",
