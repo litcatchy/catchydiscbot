@@ -215,6 +215,15 @@ Protect - Toggle VC deletion protection""",
                 await new_vc.set_permissions(member, connect=True)
                 await member.move_to(new_vc)
 
+        # Deletion of empty VCs created from the make-a-vc channel
+        if before.channel and before.channel.id != 1364639518279467079:
+            if before.channel.category and before.channel.category.id == 1359208824497639424:
+                if len(before.channel.members) == 0 and before.channel.id != 1364639518279467079:
+                    try:
+                        await before.channel.delete(reason="Auto-deleted empty VC")
+                    except:
+                        pass
+
 # Add the setup function
 async def setup(bot):
     await bot.add_cog(VCControl(bot))
