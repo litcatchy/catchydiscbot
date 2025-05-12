@@ -38,7 +38,7 @@ class StaffBoard(commands.Cog):
             f"{i+2}. {m}" for i, m in enumerate(member for member in staffs if member != self.best_staff)
         ]
 
-        embed = discord.Embed(title="Staffboard", color=discord.Color.purple())
+        embed = discord.Embed(title="Staffboard [Best of the week]", color=discord.Color.purple())
         embed.add_field(name="**Co-Owners**", value="\n".join(coowner_list) or "None", inline=False)
         embed.add_field(name="**Admins**", value="\n".join(admin_list) or "None", inline=False)
         embed.add_field(name="**Staffs**", value="\n".join(staff_list) or "None", inline=False)
