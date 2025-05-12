@@ -10,10 +10,10 @@ class StaffBoard(commands.Cog):
         self.best_admin = "<@1187556818570973194>"
         self.best_staff = "<@1363093037130977362>"
 
-        # Emoji usage
-        self.emoji_coowner = "<:coowner:1371463627705421844>"
-        self.emoji_admin = "<:admin:1371463646370201630>"
-        self.emoji_staff = "<:staff:1371463638375993374>"
+        # Emoji usage (use animated emoji format with 'a' prefix if animated)
+        self.emoji_coowner = "<a:coowner:1371463627705421844>"  
+        self.emoji_admin = "<a:admin:1371463646370201630>"  
+        self.emoji_staff = "<a:staff:1371463638375993374>"  
 
         # Role IDs
         self.coowner_role_id = 1370413469865611274
