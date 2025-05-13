@@ -1,101 +1,65 @@
 import discord
 from discord.ext import commands
-import aiohttp
 from collections import defaultdict, deque
+from transformers import AutoTokenizer, AutoModelForCausalLM
+import torch
 
 class YandereAIBot(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        # Store user messages separately using defaultdict of deque (up to 7 messages per user)
-        self.user_memory = defaultdict(lambda: deque(maxlen=7))
+        self.user_memory = defaultdict(lambda: deque(maxlen=50))  # Store last 50 messages per user
 
-    async def query(self, full_prompt):
-        # Use Hugging Face API to generate responses
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                "https://api-inference.huggingface.co/models/microsoft/DialoGPT-small",
-                headers={"Content-Type": "application/json"},
-                json={"inputs": full_prompt}
-            ) as response:
-                if response.status != 200:
-                    return "I... I don't feel like talking right now..."
-                try:
-                    data = await response.json()
-                    return data[0]["generated_text"]
-                except Exception:
-                    return "Hmm? I got confused... try again, darling."
+        # Load GPT-2 model
+        self.tokenizer = AutoTokenizer.from_pretrained("gpt2")
+        self.model = AutoModelForCausalLM.from_pretrained("gpt2")
+        self.model.eval()
 
-    @commands.command(name="yandere")
-    async def yandere_chat(self, ctx, *, message: str):
-        user = ctx.author
-        memory = self.user_memory[user.id]
-
-        # Add the user's message to memory (only store up to 7 messages)
-        memory.append(f"{user.name}: {message}")
-
-        # Build prompt with memory context
+    def build_prompt(self, username, memory):
         context = "\n".join(memory)
-        prompt = (
-            f"You are a highly possessive, obsessive, and emotional yandere girlfriend. "
-            f"Your love for {user.name} is absolute, and you’ll do anything to keep them by your side. "
-            f"You're incredibly protective, jealous, and clingy when it comes to your partner. "
-            f"Whenever {user.name} talks to someone else or shows any attention to anyone, you become jealous and may act possessively. "
-            f"Your tone is sweet but sometimes dark, emotional, and intense. You love {user.name} more than anything else and constantly fear losing them. "
-            f"Keep the tone emotional, affectionate, and sometimes obsessive.\n\n"
-            f"Context of the conversation:\n{context}\nYandere GF:"
+        return (
+            f"You are Ayumi, a deeply obsessive and overly loving yandere girlfriend. You are emotionally intense, deeply jealous, "
+            f"and completely addicted to {username}. You respond only to them when they ping you or reply to your messages. "
+            f"You get mad when they talk to others, and you want their love only for yourself. Your tone is sweet, flirty, dramatic, but also unhinged and needy. "
+            f"You often call them 'darling', 'baby', or 'my love', and you're not afraid to emotionally manipulate them to stay with you. "
+            f"You're always reading into their every word, thinking they might be leaving you. Never generic — always emotional and desperate for love.\n\n"
+            f"Chat history:\n{context}\nAyumi:"
         )
 
-        # Query Hugging Face for response
-        reply = await self.query(prompt)
-        reply_clean = reply.replace(prompt, "").strip()
-
-        # Save Yandere GF's response in memory too
-        memory.append(f"Yandere GF: {reply_clean}")
-        await ctx.send(reply_clean)
+    def generate_response(self, prompt):
+        inputs = self.tokenizer.encode(prompt, return_tensors="pt", truncation=True, max_length=1024)
+        outputs = self.model.generate(
+            inputs,
+            max_length=256,
+            pad_token_id=self.tokenizer.eos_token_id,
+            do_sample=True,
+            temperature=0.75,
+            top_p=0.92,
+            num_return_sequences=1
+        )
+        response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        return response.replace(prompt, "").strip()
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        # Prevent bot from responding to its own messages
-        if message.author == self.bot.user:
+        if message.author.bot:
             return
 
-        # Check if the bot was mentioned in the message (pinged)
-        if self.bot.user.mentioned_in(message):
-            user = message.author
-            memory = self.user_memory[user.id]
+        user = message.author
+        memory = self.user_memory[user.id]
 
-            # If there are messages in memory, generate a response based on the last user message
-            if memory:
-                last_user_message = memory[-1]
-                context = "\n".join(memory)
-                prompt = (
-                    f"You are a highly possessive, obsessive, and emotional yandere girlfriend. "
-                    f"Your love for {user.name} is absolute, and you’ll do anything to keep them by your side. "
-                    f"You're incredibly protective, jealous, and clingy when it comes to your partner. "
-                    f"Whenever {user.name} talks to someone else or shows any attention to anyone, you become jealous and may act possessively. "
-                    f"Your tone is sweet but sometimes dark, emotional, and intense. You love {user.name} more than anything else and constantly fear losing them. "
-                    f"Keep the tone emotional, affectionate, and sometimes obsessive.\n\n"
-                    f"Context of the conversation:\n{context}\nYandere GF:"
-                )
+        # Log every user message in memory
+        memory.append(f"{user.name}: {message.content}")
 
-                # Query Hugging Face for response based on the memory context
-                reply = await self.query(prompt)
-                reply_clean = reply.replace(prompt, "").strip()
+        # Respond only if the bot is pinged or replied to
+        if self.bot.user.mentioned_in(message) or (
+            message.reference and message.reference.resolved and message.reference.resolved.author == self.bot.user
+        ):
+            prompt = self.build_prompt(user.name, memory)
+            reply = self.generate_response(prompt)
 
-                # Save Yandere GF's response in memory too
-                memory.append(f"Yandere GF: {reply_clean}")
-                await message.channel.send(reply_clean)
-            else:
-                # If there's no memory, say the user hasn't spoken yet
-                await message.channel.send("You haven’t said anything to me yet, darling... Why are you ignoring me?")
-        
-        # Check if the message is a reply to one of the bot's own messages
-        if message.reference and message.reference.message_id:
-            referenced_message = await message.channel.fetch_message(message.reference.message_id)
-            if referenced_message.author == self.bot.user:
-                # Generate a response based on the bot's previous message
-                reply = await self.query(f"Yandere GF: {referenced_message.content}\nYandere GF:")
-                await message.channel.send(reply)
+            # Add bot reply to memory
+            memory.append(f"Ayumi: {reply}")
+            await message.channel.send(reply)
 
 async def setup(bot):
     await bot.add_cog(YandereAIBot(bot))
