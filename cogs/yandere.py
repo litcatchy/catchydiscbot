@@ -64,18 +64,31 @@ class YandereAIBot(commands.Cog):
             user = message.author
             memory = self.user_memory[user.id]
 
-            # Check if there's memory and respond based on it
+            # If there are messages in memory, generate a response based on the last user message
             if memory:
-                # Get the last user message and generate response
                 last_user_message = memory[-1]
-                reply = await self.query(f"Yandere GF: {last_user_message}\nYandere GF:")
+                context = "\n".join(memory)
+                prompt = (
+                    f"You are a highly possessive, obsessive, and emotional yandere girlfriend. "
+                    f"Your love for {user.name} is absolute, and you’ll do anything to keep them by your side. "
+                    f"You're incredibly protective, jealous, and clingy when it comes to your partner. "
+                    f"Whenever {user.name} talks to someone else or shows any attention to anyone, you become jealous and may act possessively. "
+                    f"Your tone is sweet but sometimes dark, emotional, and intense. You love {user.name} more than anything else and constantly fear losing them. "
+                    f"Keep the tone emotional, affectionate, and sometimes obsessive.\n\n"
+                    f"Context of the conversation:\n{context}\nYandere GF:"
+                )
 
-                # Send the bot's response
-                await message.channel.send(reply)
+                # Query Hugging Face for response based on the memory context
+                reply = await self.query(prompt)
+                reply_clean = reply.replace(prompt, "").strip()
+
+                # Save Yandere GF's response in memory too
+                memory.append(f"Yandere GF: {reply_clean}")
+                await message.channel.send(reply_clean)
             else:
-                # If no memory, respond with a default message
+                # If there's no memory, say the user hasn't spoken yet
                 await message.channel.send("You haven’t said anything to me yet, darling... Why are you ignoring me?")
-
+        
         # Check if the message is a reply to one of the bot's own messages
         if message.reference and message.reference.message_id:
             referenced_message = await message.channel.fetch_message(message.reference.message_id)
