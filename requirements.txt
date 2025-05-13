@@ -5,3 +5,4 @@ aiohttp
 beautifulsoup4
 torch
 transformers
+huggingface_hub[hf_xet]
