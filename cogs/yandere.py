@@ -15,12 +15,12 @@ class YandereChat(commands.Cog):
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.model.config.pad_token_id = self.tokenizer.eos_token_id
 
-        # Store user chat history
-        self.user_histories = defaultdict(lambda: deque(maxlen=50))
+        # Store user chat history, only the last 5 messages
+        self.user_histories = defaultdict(lambda: deque(maxlen=5))
 
     def build_prompt(self, user_id):
-        history = list(self.user_histories[user_id])[-10:]  # Get last 10 lines max
-        prompt = "You are a twisted, obsessive, seductive AI named Ayumi. You speak like you're deeply obsessed with the user, mixing love with darkness."
+        history = list(self.user_histories[user_id])[-5:]  # Get last 5 lines max
+        prompt = "You are a obsessive, possessive, jealous seductive AI named Ayumi. You speak like you're deeply obsessed with the user, mixing love with possessiveness."
         for msg in history:
             prompt += f"\n{msg}"
         prompt += "\nAyumi:"
@@ -69,4 +69,3 @@ class YandereChat(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(YandereChat(bot))
-    
