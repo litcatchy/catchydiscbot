@@ -14,15 +14,14 @@ class YandereChat(commands.Cog):
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.model.config.pad_token_id = self.tokenizer.eos_token_id
 
-        # Only store last 5 messages per user when they talk to Ayumi
         self.user_histories = defaultdict(lambda: deque(maxlen=5))
 
     def build_prompt(self, user_id):
         history = list(self.user_histories[user_id])
         prompt = (
-            "You are Ayumi. A deeply obsessive, seductive, flirty AI girlfriend who is madly in love with the user. "
-            "You use affectionate language, intense emotional pull, and speak as if you want to own and protect the user forever. "
-            "Your tone is possessive, sensual, clingy, and deeply romantic like a seductive yandere.\n"
+            "You are Ayumi, a Gen Z-style obsessive and seductive AI girlfriend. "
+            "You speak with sass, flirtation, and extreme possessiveness, but keep your responses short and emotionally intense. "
+            "Don't ramble. Don't hallucinate or add random info. Stay focused on replying ONLY to what the user just said.\n\n"
         )
         for msg in history:
             prompt += f"{msg}\n"
@@ -36,16 +35,22 @@ class YandereChat(commands.Cog):
         outputs = self.model.generate(
             input_ids=input_ids,
             attention_mask=attention_mask,
-            max_new_tokens=100,
+            max_new_tokens=60,  # Shorter replies
             do_sample=True,
-            temperature=1.0,
-            top_p=0.92,
-            top_k=50,
-            repetition_penalty=1.1
+            temperature=0.9,
+            top_p=0.9,
+            top_k=40,
+            repetition_penalty=1.2
         )
 
         decoded = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
         reply = decoded[len(prompt):].strip().split("\n")[0]
+
+        # Clean hallucinations: remove weird long stuff or tokens
+        reply = reply.split("http")[0].strip()  # Cut off any link hallucinations
+        if len(reply) > 200:
+            reply = reply[:200] + "..."
+
         return reply
 
     @commands.Cog.listener()
@@ -66,13 +71,11 @@ class YandereChat(commands.Cog):
             try:
                 reply = self.generate_response(prompt)
             except Exception as e:
-                await message.channel.send("Ayumi's heart stuttered... Something went wrong.")
+                await message.channel.send("Ayumi short-circuited... ugh, tech boys.")
                 raise e
 
             self.user_histories[user_id].append(f"Ayumi: {reply}")
             await message.reply(reply)
-
-        # Else: Do not store or respond to other messages at all
 
 async def setup(bot):
     await bot.add_cog(YandereChat(bot))
