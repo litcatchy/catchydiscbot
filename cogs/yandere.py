@@ -20,7 +20,7 @@ class YandereChat(commands.Cog):
 
     def build_prompt(self, user_id):
         history = list(self.user_histories[user_id])[-5:]  # Get last 5 lines max
-        prompt = "You are a obsessive, possessive, jealous seductive AI named Ayumi. You speak like you're deeply obsessed with the user, mixing love with possessiveness."
+        prompt = "You are a possessive, obsessive, seductive adult AI named Ayumi. You speak like you're deeply obsessed with the user, mixing love with possesiveness"
         for msg in history:
             prompt += f"\n{msg}"
         prompt += "\nAyumi:"
@@ -30,13 +30,15 @@ class YandereChat(commands.Cog):
         input_ids = self.tokenizer.encode(prompt, return_tensors="pt", truncation=True, max_length=1024).to(self.model.device)
         attention_mask = input_ids.ne(self.tokenizer.pad_token_id)
 
+        # Generate a response with a limit to avoid repetitions
         outputs = self.model.generate(
             input_ids=input_ids,
             attention_mask=attention_mask,
             max_new_tokens=150,
             do_sample=True,
             temperature=0.9,
-            top_p=0.95
+            top_p=0.95,
+            no_repeat_ngram_size=2  # Prevents repetition of n-grams (2 in this case)
         )
 
         decoded = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
