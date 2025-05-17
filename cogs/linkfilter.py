@@ -6,8 +6,8 @@ from datetime import datetime
 class LinkFilter(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.link_role_id = 1371429530673348648
-        self.log_channel_id = 1339898523407355945
+        self.link_role_id = 1371429530673348648  # Role allowed to send links
+        self.log_channel_id = 1339898523407355945  # Channel for logging deleted messages
         self.invite_pattern = re.compile(
             r"(d\s*i\s*s\s*c\s*o\s*r\s*d\s*(\.\s*g\s*g|\.\s*c\s*o\s*m)?\s*(/|\.\s*|\s)*[a-zA-Z0-9]+|discordapp\s*\.\s*com\s*/\s*invite\s*/[a-zA-Z0-9]+|discord\s*\.\s*gift\s*/[a-zA-Z0-9]+|\.\s*gg\s*/[a-zA-Z0-9]+)",
             re.IGNORECASE
@@ -20,6 +20,10 @@ class LinkFilter(commands.Cog):
 
         # Normalize message by removing spaces and lowering case
         normalized = re.sub(r"\s+", "", message.content.lower())
+
+        # Skip filtering if the message only says "discord"
+        if normalized == "discord":
+            return
 
         if self.invite_pattern.search(normalized):
             # Check if user has the allowed role
@@ -49,7 +53,5 @@ class LinkFilter(commands.Cog):
 
                     await log_channel.send(embed=embed)
 
-
 async def setup(bot):
     await bot.add_cog(LinkFilter(bot))
-  
