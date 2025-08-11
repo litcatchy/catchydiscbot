@@ -135,7 +135,7 @@ class VCControlView(discord.ui.View):
     @discord.ui.button(label="Delete", style=discord.ButtonStyle.secondary, custom_id="vc_delete")
     async def delete_vc(self, interaction: discord.Interaction, button: discord.ui.Button):
         vc = interaction.user.voice.channel
-        if vc.id != 1401547369773793304 and vc.id not in self.protected_vcs:
+        if vc.id != 1404367984168013854 and vc.id not in self.protected_vcs:
             await vc.delete(reason=f"Deleted by {interaction.user}")
             await interaction.response.send_message("Voice channel deleted.", ephemeral=True)
         elif vc.id in self.protected_vcs:
@@ -169,7 +169,7 @@ class VCControl(commands.Cog):
     @tasks.loop(hours=4)
     async def send_panel(self):
         await self.bot.wait_until_ready()
-        channel = self.bot.get_channel(1401547369773793304)
+        channel = self.bot.get_channel(1404367984168013854)
         if channel is None:
             return
 
@@ -205,9 +205,9 @@ Protect - Toggle VC deletion protection""",
     async def before_panel(self):
         await self.bot.wait_until_ready()
 
-    @commands.Cog.listener()
+    @commands.Cog.listener())
     async def on_voice_state_update(self, member, before, after):
-        if after.channel and after.channel.id == 1404367984168013854:
+        if after.channel and after.channel.id == 1401547369773793304:
             category = self.bot.get_channel(1401547369773793302)
             if category:
                 new_vc = await member.guild.create_voice_channel(
@@ -215,7 +215,6 @@ Protect - Toggle VC deletion protection""",
                 await new_vc.set_permissions(member, connect=True)
                 await member.move_to(new_vc)
 
-        # Deletion of empty VCs created from the make-a-vc channel
         if before.channel and before.channel.id != 1401547369773793304:
             if before.channel.category and before.channel.category.id == 1401547369773793302:
                 if len(before.channel.members) == 0 and before.channel.id != 1401547369773793304:
@@ -224,6 +223,5 @@ Protect - Toggle VC deletion protection""",
                     except:
                         pass
 
-# Add the setup function
 async def setup(bot):
     await bot.add_cog(VCControl(bot))
