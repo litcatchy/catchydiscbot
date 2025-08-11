@@ -207,7 +207,7 @@ Protect - Toggle VC deletion protection""",
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
-        if after.channel and after.channel.id == 1401547369773793304:
+        if after.channel and after.channel.id == 1404367984168013854:
             category = self.bot.get_channel(1401547369773793302)
             if category:
                 new_vc = await member.guild.create_voice_channel(
